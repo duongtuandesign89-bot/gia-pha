@@ -22,12 +22,6 @@ GP.render = (function () {
     });
   }
 
-  function nameHTML(p) {
-    var ho = esc(p.hoDem.trim()), ten = esc(p.ten.trim());
-    if (!ho && !ten) return '<span class="trong">chưa nhập</span>';
-    return (ho ? '<span class="ho">' + ho + '</span> ' : '') + '<b>' + ten + '</b>';
-  }
-
   function yearsText(p) {
     if (p.namSinh && p.namMat) return p.namSinh + ' – ' + p.namMat;
     if (p.namSinh) return 'sinh ' + p.namSinh;
@@ -37,11 +31,17 @@ GP.render = (function () {
 
   /* ---------- dựng DOM ---------- */
 
+  /* Ba dòng cho mỗi người: họ & tên đệm (đậm, hoa) — tên riêng — năm sinh/mất.
+     Viết hoa bằng CSS chứ không bằng JS, để dữ liệu gốc giữ nguyên cách gõ của người dùng. */
   function personRow(p, label, isBlood) {
-    var years = yearsText(p);
+    var ho = esc(p.hoDem.trim()), ten = esc(p.ten.trim());
+    var chuaNhap = !ho && !ten;
     return '<div class="person' + (isBlood ? ' huyet-thong' : '') + '">' +
-      '<div class="dong-ten"><span class="nhan">' + label + '</span>' + nameHTML(p) + '</div>' +
-      '<div class="dong-nam">' + esc(years) + '</div>' +
+      '<div class="dong-ho"><span class="nhan">' + label + '</span>' +
+      (chuaNhap ? '<span class="trong">chưa nhập</span>' : '<b>' + ho + '</b>') +
+      '</div>' +
+      '<div class="dong-ten">' + ten + '</div>' +
+      '<div class="dong-nam">' + esc(yearsText(p)) + '</div>' +
       '</div>';
   }
 

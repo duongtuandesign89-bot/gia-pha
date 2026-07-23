@@ -8,6 +8,7 @@ GP.editor = (function () {
   var panel, body, titleEl;
   var currentId = null;
   var xoaMo = false;   // đang mở phần xác nhận xoá
+  var dangGo = false;  // đang gõ trong chính bảng này
   var on = {};
 
   function esc(s) {
@@ -22,7 +23,9 @@ GP.editor = (function () {
       '<span>' + label + '</span>' +
       '<input data-k="' + k + '" data-node="' + nodeId + '" data-who="' + who +
       '" data-index="' + index + '" data-field="' + field + '"' +
-      ' type="' + (type || 'text') + '"' + (type === 'number' ? ' min="0" max="2200" step="1"' : '') +
+      // năm là text chứ không phải number: number bị lăn chuột làm đổi giá trị,
+      // mà người dùng lăn chuột liên tục để phóng to cây
+      ' type="text"' + (type === 'nam' ? ' inputmode="numeric" maxlength="4" class="o-nam"' : '') +
       ' value="' + esc(value == null ? '' : value) + '">' +
       '</label>';
   }
@@ -37,8 +40,8 @@ GP.editor = (function () {
       inputRow(nodeId, who, index, 'ten', 'Tên riêng', p.ten) +
       '</div>' +
       '<div class="hang-2">' +
-      inputRow(nodeId, who, index, 'namSinh', 'Năm sinh', p.namSinh, 'number') +
-      inputRow(nodeId, who, index, 'namMat', 'Năm mất', p.namMat, 'number') +
+      inputRow(nodeId, who, index, 'namSinh', 'Năm sinh', p.namSinh, 'nam') +
+      inputRow(nodeId, who, index, 'namMat', 'Năm mất', p.namMat, 'nam') +
       '</div>' +
       inputRow(nodeId, who, index, 'ghiChu', 'Ghi chú', p.ghiChu) +
       '</div>';
@@ -118,8 +121,12 @@ GP.editor = (function () {
     return h;
   }
 
-  /** Dựng lại bảng nhưng giữ nguyên con trỏ đang gõ. */
+  /**
+   * Dựng lại bảng. Trong lúc người dùng đang gõ thì bỏ qua: ô nhập trên màn hình
+   * đã đúng rồi, dựng lại chỉ tổ làm nhảy con trỏ. Cây bên trái vẫn vẽ lại bình thường.
+   */
   function refresh() {
+    if (dangGo) return;
     if (!currentId || !GP.data.node(currentId)) {
       close();
       return;
@@ -127,7 +134,7 @@ GP.editor = (function () {
     var af = document.activeElement;
     var key = af && panel.contains(af) && af.dataset ? af.dataset.k : null;
     var pos = null;
-    if (key && af.type !== 'number') { try { pos = af.selectionStart; } catch (e) { } }
+    if (key) { try { pos = af.selectionStart; } catch (e) { } }
 
     body.innerHTML = build(currentId);
     panel.classList.add('mo');
@@ -171,11 +178,20 @@ GP.editor = (function () {
 
     body.addEventListener('input', function (e) {
       var t = e.target;
-      if (t.dataset.field) {
-        var val = t.dataset.field === 'namSinh' || t.dataset.field === 'namMat'
-          ? parseYear(t.value) : t.value;
-        GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index, t.dataset.field, val);
+      if (!t.dataset.field) return;
+      var laNam = t.dataset.field === 'namSinh' || t.dataset.field === 'namMat';
+      if (laNam) {
+        var sach = t.value.replace(/[^0-9]/g, '').slice(0, 4);
+        if (sach !== t.value) {
+          var pos = t.selectionStart - (t.value.length - sach.length);
+          t.value = sach;
+          try { t.setSelectionRange(pos, pos); } catch (err) { }
+        }
       }
+      dangGo = true;
+      GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index,
+        t.dataset.field, laNam ? parseYear(t.value) : t.value);
+      dangGo = false;
     });
 
     body.addEventListener('change', function (e) {

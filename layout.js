@@ -9,7 +9,7 @@ GP.layout = (function () {
   var H_GAP = 30;     // cách nhau giữa hai ô anh em
   var V_GAP = 68;     // cách nhau giữa hai đời
   var HEADER = 26;    // dải "Đời n"
-  var PERSON = 40;    // một người: dòng tên + dòng năm
+  var PERSON = 62;    // một người: dòng họ + dòng tên riêng + dòng năm
   var PAD = 12;
 
   function nodeHeight(n) {
