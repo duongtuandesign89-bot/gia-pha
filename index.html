@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Gia phả dòng họ</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header id="thanh-cong-cu">
+  <input id="ten-dong-ho" class="ten-ho" type="text" placeholder="Tên dòng họ" aria-label="Tên dòng họ">
+
+  <div class="nhom">
+    <div class="o-tim-bao">
+      <input id="o-tim" type="search" placeholder="Tìm tên…  ( / )" aria-label="Tìm tên">
+      <span id="so-khop"></span>
+    </div>
+    <button id="khop-truoc" title="Kết quả trước (Shift+Enter)">↑</button>
+    <button id="khop-sau" title="Kết quả sau (Enter)">↓</button>
+  </div>
+
+  <div class="nhom">
+    <button id="thu-nho" title="Thu nhỏ">−</button>
+    <span id="muc-phong">100%</span>
+    <button id="phong-to" title="Phóng to">+</button>
+    <button id="vua-man-hinh" title="Vừa màn hình">Vừa khung</button>
+  </div>
+
+  <div class="nhom">
+    <button id="gap-tat-ca" title="Thu gọn mọi nhánh">Gấp hết</button>
+    <button id="mo-tat-ca" title="Mở mọi nhánh">Mở hết</button>
+  </div>
+
+  <div class="nhom">
+    <button id="hoan-tac" title="Hoàn tác (Ctrl+Z)">↶</button>
+    <button id="lam-lai" title="Làm lại (Ctrl+Shift+Z)">↷</button>
+  </div>
+
+  <div class="nhom cuoi">
+    <button id="nhap">Nhập tệp</button>
+    <button id="xuat" class="chinh">Xuất tệp</button>
+    <button id="in">In</button>
+    <button id="tao-moi" class="nguy" title="Xoá hết và bắt đầu lại">Tạo mới</button>
+    <input id="chon-tep" type="file" accept=".json,application/json" hidden>
+  </div>
+</header>
+
+<main id="viewport">
+  <h1 id="tieu-de-in"></h1>
+  <div id="canvas">
+    <svg id="lines" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="boxes"></div>
+  </div>
+</main>
+
+<aside id="bang-sua">
+  <div class="bang-dau">
+    <strong id="bang-sua-doi">Đời</strong>
+    <button id="dong-bang-sua" title="Đóng (Esc)">✕</button>
+  </div>
+  <div id="bang-sua-noi-dung"></div>
+</aside>
+
+<footer id="thanh-duoi">
+  <span id="trang-thai"></span>
+  <span class="meo">Kéo nền để di chuyển · lăn chuột để phóng to · bấm vào ô để sửa · dữ liệu tự lưu trong trình duyệt</span>
+</footer>
+
+<script src="data.js"></script>
+<script src="layout.js"></script>
+<script src="render.js"></script>
+<script src="editor.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

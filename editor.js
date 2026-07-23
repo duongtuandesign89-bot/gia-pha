@@ -1,0 +1,221 @@
+/* editor.js — bảng sửa bên phải. Đọc ô đang chọn, ghi thẳng vào GP.data.
+   Không có nút Lưu: gõ tới đâu ghi tới đó. */
+window.GP = window.GP || {};
+
+GP.editor = (function () {
+  'use strict';
+
+  var panel, body, titleEl;
+  var currentId = null;
+  var xoaMo = false;   // đang mở phần xác nhận xoá
+  var on = {};
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function inputRow(nodeId, who, index, field, label, value, type) {
+    var k = [nodeId, who, index, field].join('.');
+    return '<label class="o-nhap">' +
+      '<span>' + label + '</span>' +
+      '<input data-k="' + k + '" data-node="' + nodeId + '" data-who="' + who +
+      '" data-index="' + index + '" data-field="' + field + '"' +
+      ' type="' + (type || 'text') + '"' + (type === 'number' ? ' min="0" max="2200" step="1"' : '') +
+      ' value="' + esc(value == null ? '' : value) + '">' +
+      '</label>';
+  }
+
+  function personBlock(nodeId, who, index, p, tieuDe, coXoa) {
+    var h = '<div class="khoi-nguoi">' +
+      '<div class="khoi-dau"><h3>' + esc(tieuDe) + '</h3>' +
+      (coXoa ? '<button class="nut-nho nguy" data-act="xoa-vo" data-index="' + index + '">Xoá</button>' : '') +
+      '</div>' +
+      '<div class="hang-2">' +
+      inputRow(nodeId, who, index, 'hoDem', 'Họ & tên đệm', p.hoDem) +
+      inputRow(nodeId, who, index, 'ten', 'Tên riêng', p.ten) +
+      '</div>' +
+      '<div class="hang-2">' +
+      inputRow(nodeId, who, index, 'namSinh', 'Năm sinh', p.namSinh, 'number') +
+      inputRow(nodeId, who, index, 'namMat', 'Năm mất', p.namMat, 'number') +
+      '</div>' +
+      inputRow(nodeId, who, index, 'ghiChu', 'Ghi chú', p.ghiChu) +
+      '</div>';
+    return h;
+  }
+
+  function build(id) {
+    var n = GP.data.node(id);
+    if (!n) return '';
+
+    var map = GP.data.parentMap();
+    var parentId = map[id];
+    var parent = parentId ? GP.data.node(parentId) : null;
+    var depth = GP.data.ancestors(id).length;
+
+    var h = '';
+
+    h += personBlock(id, 'chong', 0, n.chong, 'Ông', false);
+    n.vo.forEach(function (v, i) {
+      h += personBlock(id, 'vo', i, v, n.vo.length > 1 ? 'Bà ' + (i + 1) : 'Bà', n.vo.length > 1);
+    });
+    h += '<button class="nut-phu" data-act="them-vo">+ Thêm bà (vợ hai…)</button>';
+
+    h += '<div class="khoi">' +
+      '<h3>Người mang huyết thống dòng họ</h3>' +
+      '<div class="hang-radio">' +
+      '<label><input type="radio" name="dt" value="chong" data-act="doi-truyen"' +
+      (n.doiTruyen === 'chong' ? ' checked' : '') + '> Ông</label>' +
+      '<label><input type="radio" name="dt" value="vo" data-act="doi-truyen"' +
+      (n.doiTruyen === 'vo' ? ' checked' : '') + '> Bà</label>' +
+      '</div>' +
+      '<p class="chu-thich">Con gái lấy chồng thì chọn “Bà” — ông trong ô là con rể.</p>' +
+      '</div>';
+
+    if (parent && parent.vo.length > 1) {
+      h += '<div class="khoi"><h3>Mẹ của ô này</h3><select data-act="me-index">' +
+        parent.vo.map(function (v, i) {
+          return '<option value="' + i + '"' + (n.meIndex === i ? ' selected' : '') + '>' +
+            esc('Bà ' + (i + 1) + ' — ' + (GP.data.fullName(v) || 'chưa nhập')) + '</option>';
+        }).join('') +
+        '</select></div>';
+    }
+
+    h += '<div class="khoi"><h3>Các con (' + n.con.length + ')</h3>';
+    if (!n.con.length) {
+      h += '<p class="chu-thich">Chưa có người con nào.</p>';
+    } else {
+      h += '<ol class="ds-con">' + n.con.map(function (cid, i) {
+        var c = GP.data.node(cid);
+        var ten = GP.data.fullName(c.doiTruyen === 'vo' ? c.vo[0] : c.chong) || 'chưa nhập';
+        return '<li>' +
+          '<button class="ten-con" data-act="di-toi" data-id="' + cid + '">' + esc(ten) + '</button>' +
+          '<span class="dieu-khien">' +
+          '<button data-act="len" data-index="' + i + '"' + (i === 0 ? ' disabled' : '') + ' title="Lên trên">↑</button>' +
+          '<button data-act="xuong" data-index="' + i + '"' + (i === n.con.length - 1 ? ' disabled' : '') + ' title="Xuống dưới">↓</button>' +
+          '</span></li>';
+      }).join('') + '</ol>';
+    }
+    h += '<button class="nut-chinh" data-act="them-con">+ Thêm người con</button></div>';
+
+    h += '<div class="khoi vung-nguy">';
+    if (!parentId) {
+      h += '<p class="chu-thich">Đây là ô gốc (đời 1) nên không xoá được.</p>' +
+        '<button class="nut-phu" data-act="them-cha">+ Thêm một đời phía trên</button>';
+    } else if (!xoaMo) {
+      h += '<button class="nut-phu nguy" data-act="mo-xoa">Xoá ô này…</button>';
+    } else {
+      var soO = GP.data.branchSize(id);
+      h += '<p class="chu-thich">Xoá thế nào?</p>' +
+        '<button class="nut-phu nguy" data-act="xoa-nhanh">Xoá cả nhánh (' + soO + ' ô)</button>' +
+        '<button class="nut-phu" data-act="xoa-noi">Chỉ xoá ô này, các con nối lên đời trên</button>' +
+        '<button class="nut-phu" data-act="huy-xoa">Thôi</button>';
+    }
+    h += '</div>';
+
+    titleEl.textContent = 'Đời ' + (depth + 1);
+    return h;
+  }
+
+  /** Dựng lại bảng nhưng giữ nguyên con trỏ đang gõ. */
+  function refresh() {
+    if (!currentId || !GP.data.node(currentId)) {
+      close();
+      return;
+    }
+    var af = document.activeElement;
+    var key = af && panel.contains(af) && af.dataset ? af.dataset.k : null;
+    var pos = null;
+    if (key && af.type !== 'number') { try { pos = af.selectionStart; } catch (e) { } }
+
+    body.innerHTML = build(currentId);
+    panel.classList.add('mo');
+
+    if (key) {
+      var el = body.querySelector('[data-k="' + key + '"]');
+      if (el) {
+        el.focus();
+        if (pos != null) { try { el.setSelectionRange(pos, pos); } catch (e) { } }
+      }
+    }
+  }
+
+  function open(id) {
+    currentId = id;
+    xoaMo = false;
+    refresh();
+  }
+
+  function close() {
+    currentId = null;
+    xoaMo = false;
+    panel.classList.remove('mo');
+    if (on.select) on.select(null);
+  }
+
+  function parseYear(v) {
+    var s = String(v).trim();
+    if (!s) return null;
+    var n = parseInt(s, 10);
+    return isNaN(n) ? null : n;
+  }
+
+  function init(opts) {
+    panel = document.getElementById('bang-sua');
+    body = document.getElementById('bang-sua-noi-dung');
+    titleEl = document.getElementById('bang-sua-doi');
+    on = opts || {};
+
+    document.getElementById('dong-bang-sua').addEventListener('click', close);
+
+    body.addEventListener('input', function (e) {
+      var t = e.target;
+      if (t.dataset.field) {
+        var val = t.dataset.field === 'namSinh' || t.dataset.field === 'namMat'
+          ? parseYear(t.value) : t.value;
+        GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index, t.dataset.field, val);
+      }
+    });
+
+    body.addEventListener('change', function (e) {
+      var act = e.target.dataset.act;
+      if (act === 'doi-truyen') GP.data.setDoiTruyen(currentId, e.target.value);
+      else if (act === 'me-index') GP.data.setMeIndex(currentId, +e.target.value);
+    });
+
+    body.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var act = btn.dataset.act;
+
+      if (act === 'them-vo') GP.data.addSpouse(currentId);
+      else if (act === 'xoa-vo') GP.data.removeSpouse(currentId, +btn.dataset.index);
+      else if (act === 'them-con') {
+        var newId = GP.data.addChild(currentId);
+        if (on.select) on.select(newId);
+      } else if (act === 'them-cha') {
+        var pid = GP.data.addParentAboveRoot();
+        if (on.select) on.select(pid);
+      } else if (act === 'di-toi') {
+        if (on.select) on.select(btn.dataset.id);
+      } else if (act === 'len') GP.data.moveChild(currentId, +btn.dataset.index, -1);
+      else if (act === 'xuong') GP.data.moveChild(currentId, +btn.dataset.index, 1);
+      else if (act === 'mo-xoa') { xoaMo = true; refresh(); }
+      else if (act === 'huy-xoa') { xoaMo = false; refresh(); }
+      else if (act === 'xoa-nhanh' || act === 'xoa-noi') {
+        var err = GP.data.deleteNode(currentId, act === 'xoa-nhanh' ? 'branch' : 'promote');
+        if (err) { alert(err); return; }
+        if (on.select) on.select(null);
+      }
+    });
+  }
+
+  return {
+    init: init,
+    open: open,
+    close: close,
+    refresh: refresh,
+    current: function () { return currentId; }
+  };
+})();
