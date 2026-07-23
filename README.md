@@ -3,6 +3,10 @@
 Web app dựng cây gia phả nhiều đời. Mỗi ô là một gia đình (ông & bà), phân nhánh xuống các con.
 Không cần server, không cần cài đặt — mở là chạy.
 
+**Đang chạy tại: <https://gia-pha-mu.vercel.app>**
+
+Vercel lấy thẳng từ nhánh `main` của repo này — cứ push là nó tự deploy lại.
+
 ## Chạy
 
 Mở thẳng `index.html` bằng trình duyệt, hoặc chạy máy chủ tại chỗ:
@@ -14,7 +18,7 @@ python3 -m http.server 8777
 
 rồi vào <http://127.0.0.1:8777>.
 
-Muốn đưa lên mạng thì đẩy cả thư mục lên Vercel / Netlify / GitHub Pages — chỉ là tệp tĩnh.
+Toàn bộ là tệp tĩnh, không có bước build — host ở đâu cũng được.
 
 ## Dữ liệu
 
