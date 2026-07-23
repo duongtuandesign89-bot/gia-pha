@@ -18,15 +18,17 @@ GP.editor = (function () {
   }
 
   /* Các ô chỉ nhận chữ số: số chữ số tối đa và khoảng hợp lệ. */
-  /* `namMat` cố ý không nằm đây: nó nhận cả chữ ("không rõ", "mất lúc nhỏ"). */
+  /* `namSinh`/`namMat` cố ý không nằm đây: hai ô đó nhận cả chữ
+     (năm can chi "Ất Mão", hoặc "không rõ", "mất lúc nhỏ"). */
   var SO = {
     ngaySinh: { dai: 2, min: 1, max: 31 }, thangSinh: { dai: 2, min: 1, max: 12 },
-    namSinh: { dai: 4, min: 1, max: 2200 },
     ngayMat: { dai: 2, min: 1, max: 31 }, thangMat: { dai: 2, min: 1, max: 12 }
   };
 
+  function laONam(field) { return field === 'namSinh' || field === 'namMat'; }
+
   /** Gõ toàn số thì lưu thành số, còn lại lưu nguyên chữ. */
-  function giaTriNamMat(v) {
+  function giaTriNam(v) {
     var t = String(v).trim();
     if (!t) return null;
     return /^\d{1,4}$/.test(t) ? parseInt(t, 10) : t;
@@ -43,21 +45,21 @@ GP.editor = (function () {
       // mà người dùng lăn chuột liên tục để phóng to cây
       ' type="text"' +
       (so ? ' inputmode="numeric" maxlength="' + so.dai + '" class="o-so"' : '') +
-      (field === 'namMat' ? ' maxlength="40"' : '') +
+      (laONam(field) ? ' maxlength="40"' : '') +
       (goiY ? ' placeholder="' + esc(goiY) + '"' : '') +
       ' value="' + esc(value == null ? '' : value) + '">' +
       '</label>';
   }
 
   /** Một mốc thời gian: ngày / tháng / năm + nút gạt dương lịch ⇄ âm lịch. */
-  function mocThoiGian(nodeId, who, index, p, nhan, fNgay, fThang, fNam, fLich, chuDuoc) {
+  function mocThoiGian(nodeId, who, index, p, nhan, fNgay, fThang, fNam, fLich, goiYNam) {
     var am = p[fLich] === 'am';
     return '<div class="moc">' +
       '<span class="nhan-moc">' + nhan + '</span>' +
-      '<div class="hang-3' + (chuDuoc ? ' cuoi-rong' : '') + '">' +
+      '<div class="hang-3 cuoi-rong">' +
       inputRow(nodeId, who, index, fNgay, '', p[fNgay], 'ngày') +
       inputRow(nodeId, who, index, fThang, '', p[fThang], 'tháng') +
-      inputRow(nodeId, who, index, fNam, '', p[fNam], chuDuoc ? 'năm, hoặc “không rõ”' : 'năm') +
+      inputRow(nodeId, who, index, fNam, '', p[fNam], goiYNam) +
       '</div>' +
       '<button class="nut-lich' + (am ? ' am' : '') + '" data-act="doi-lich"' +
       ' data-who="' + who + '" data-index="' + index + '" data-lich="' + fLich + '"' +
@@ -75,12 +77,14 @@ GP.editor = (function () {
       inputRow(nodeId, who, index, 'hoDem', 'Họ & tên đệm', p.hoDem) +
       inputRow(nodeId, who, index, 'ten', 'Tên riêng', p.ten) +
       '</div>' +
-      mocThoiGian(nodeId, who, index, p, 'Sinh', 'ngaySinh', 'thangSinh', 'namSinh', 'lichSinh') +
-      mocThoiGian(nodeId, who, index, p, 'Mất', 'ngayMat', 'thangMat', 'namMat', 'lichMat', true) +
-      '<p class="chu-thich">Chỉ nhớ năm thì bỏ trống ngày và tháng. Ô năm mất ghi được cả chữ ' +
-      '(“không rõ”, “mất lúc nhỏ”) — khi đó ngày và tháng mất sẽ không hiện ra. ' +
-      'Nút <b>DL/ÂL</b> đánh dấu mốc đó chép theo dương lịch hay âm lịch; ứng dụng chỉ ghi nhận ' +
-      'chứ không quy đổi.</p>' +
+      mocThoiGian(nodeId, who, index, p, 'Sinh', 'ngaySinh', 'thangSinh', 'namSinh', 'lichSinh',
+        'năm, hoặc “Ất Mão”') +
+      mocThoiGian(nodeId, who, index, p, 'Mất', 'ngayMat', 'thangMat', 'namMat', 'lichMat',
+        'năm, hoặc “không rõ”') +
+      '<p class="chu-thich">Chỉ nhớ năm thì bỏ trống ngày và tháng. Hai ô năm ghi được cả chữ — ' +
+      'năm can chi (“Ất Mão”) hoặc “không rõ”, “mất lúc nhỏ” — mà vẫn giữ được ngày tháng ' +
+      'bên cạnh. Nút <b>DL/ÂL</b> đánh dấu mốc đó chép theo dương lịch hay âm lịch; ứng dụng ' +
+      'chỉ ghi nhận chứ không quy đổi.</p>' +
       inputRow(nodeId, who, index, 'ghiChu', 'Ghi chú', p.ghiChu) +
       '</div>';
     return h;
@@ -228,7 +232,7 @@ GP.editor = (function () {
         }
       }
       var val = so ? parseSo(t.value)
-        : (field === 'namMat' ? giaTriNamMat(t.value) : t.value);
+        : (laONam(field) ? giaTriNam(t.value) : t.value);
       dangGo = true;
       GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index, field, val);
       dangGo = false;

@@ -53,19 +53,24 @@ còn nhớ mỗi năm. Trong ô hiển thị `S:` là sinh, `M:` là mất, và 
 | 12 / 5 / 1890 | `S: 12/05/1890` |
 | 8 / 1895 | `S: 08/1895` |
 | 1960 | `S: 1960` |
+| 15 / 8 / "Ất Mão" | `S: 15/08 Ất Mão` |
+| "không rõ" | `S: không rõ` |
 | ngày mà thiếu tháng | bỏ ngày, chỉ hiện năm |
 
 Tệp `.json` xuất từ bản trước (chỉ có `namSinh`/`namMat`) vẫn mở lại được — các trường ngày/tháng
 tự được bù thành `null`.
 
-**Năm mất ghi được bằng chữ.** Nhiều trường hợp chỉ biết người đó đã mất chứ không biết năm, nên ô
-năm mất nhận cả `"không rõ"`, `"mất lúc nhỏ"`. Gõ toàn chữ số thì lưu thành số, còn lại lưu nguyên
-chữ. Khi năm mất là chữ thì ngày và tháng mất không hiện ra — `12/05/không rõ` vô nghĩa.
+**Hai ô năm ghi được bằng chữ.** Năm can chi (`"Ất Mão"`, `"Đinh Hợi"`) hoặc `"không rõ"`,
+`"mất lúc nhỏ"`. Gõ toàn chữ số thì lưu thành số, còn lại lưu nguyên chữ.
+
+Năm là chữ thì **ngày và tháng vẫn giữ nguyên bên cạnh**: `15/08 Ất Mão`, `20/03 không rõ`. Đây là
+trường hợp phổ biến nhất trong gia phả — biết ngày giỗ nhưng không biết năm — nên ẩn ngày tháng đi
+là làm mất đúng cái người ta cần.
 
 **Âm lịch.** `lichSinh`/`lichMat` là `"duong"` hoặc `"am"`, mặc định dương lịch. Rất nhiều gia phả
 chỉ ghi ngày âm, nhất là ngày giỗ. Ứng dụng **chỉ ghi nhận mốc đó thuộc lịch nào, không quy đổi** —
 quy đổi cần thuật toán âm lịch riêng, và quy sai thì hỏng mất dữ liệu gốc. Trong ô, mốc âm lịch có
-chữ `ÂL` nhỏ màu đỏ bên cạnh. Năm mất ghi bằng chữ thì nhãn lịch không hiện (vô nghĩa).
+chữ `ÂL` nhỏ màu đỏ bên cạnh — kể cả khi năm ghi bằng chữ, vì năm can chi vốn là năm âm lịch.
 
 Nếu cả sinh lẫn mất đều dài (đủ ngày/tháng/năm, lại thêm dấu âm lịch) thì dòng năm tự tách làm hai
 dòng thay vì bị cắt cụt. `GP.layout.namHaiDong()` là chỗ **duy nhất** quyết định việc đó — cả bản
@@ -141,5 +146,5 @@ Một ngón kéo để di chuyển, hai ngón chụm để phóng to.
 
 Ảnh chân dung, mộ phần, tiểu sử dài, đăng nhập, nhiều người cùng sửa một lúc.
 
-Về âm lịch, **chưa** có: quy đổi âm ⇄ dương, tháng nhuận (`tháng 5 nhuận` chưa ghi riêng được),
-và năm can chi (`Ất Mão`) — ô năm sinh hiện chỉ nhận chữ số, chỉ ô năm mất mới ghi được chữ.
+Về âm lịch, **chưa** có: quy đổi âm ⇄ dương, và tháng nhuận (`tháng 5 nhuận` chưa ghi riêng được —
+tạm thời viết vào ô ghi chú).

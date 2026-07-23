@@ -22,8 +22,8 @@ GP.data = (function () {
      các cụ đời trước chỉ còn nhớ mỗi năm. Thiếu phần nào thì phần đó là null.
      Tên trường `namSinh`/`namMat` giữ nguyên như bản đầu để tệp cũ mở lại được.
 
-     `namMat` nhận cả chữ ("không rõ", "mất lúc nhỏ") vì nhiều trường hợp chỉ biết
-     là đã mất chứ không biết năm. Khi là chữ thì ngày/tháng mất bị bỏ qua lúc hiển thị.
+     `namSinh`/`namMat` nhận cả chữ: năm can chi ("Ất Mão") hoặc "không rõ", "mất lúc nhỏ".
+     Gõ toàn chữ số thì lưu thành số, còn lại lưu nguyên chữ. Ngày và tháng vẫn giữ nguyên.
 
      `lichSinh`/`lichMat` là 'duong' hoặc 'am'. Nhiều gia phả chỉ ghi ngày âm, nhất là ngày
      giỗ. Ở đây chỉ ghi nhận ngày đó thuộc lịch nào chứ KHÔNG quy đổi qua lại — quy đổi cần
@@ -98,7 +98,9 @@ GP.data = (function () {
     g1.vo[0].namMat = 'không rõ';   // biết là đã mất nhưng không rõ năm
     add(c1, newPerson('Nguyễn Văn', 'Đức', 1949, 2018), newPerson('Hoàng Thị', 'Thu', 1952, null));
     add(c2, newPerson('Nguyễn Văn', 'Giang', 1950, null), newPerson('Trần Thị', 'Hồng', 1954, null));
-    add(c3, newPerson('Lý Văn', 'Hải', 1947, null), newPerson('Đỗ Thị', 'Thanh', 1950, null), 'vo');
+    var g4 = add(c3, newPerson('Lý Văn', 'Hải', 1947, null), newPerson('Đỗ Thị', 'Thanh', 1950, null), 'vo');
+    g4.chong.namSinh = 'Đinh Hợi';   // chỉ còn nhớ năm can chi
+    g4.chong.lichSinh = 'am';
     return t;
   }
 
@@ -132,7 +134,7 @@ GP.data = (function () {
   }
 
   /** Chuỗi toàn chữ số thì đưa về số, để chỗ hiển thị chỉ cần phân biệt số với chữ. */
-  function chuanHoaNamMat(v) {
+  function chuanHoaNam(v) {
     if (typeof v !== 'string') return v;
     var t = v.trim();
     if (!t) return null;
@@ -141,7 +143,8 @@ GP.data = (function () {
 
   function chuanHoaNguoi(p) {
     var out = Object.assign(newPerson(), p || {});
-    out.namMat = chuanHoaNamMat(out.namMat);
+    out.namSinh = chuanHoaNam(out.namSinh);
+    out.namMat = chuanHoaNam(out.namMat);
     out.lichSinh = out.lichSinh === 'am' ? 'am' : 'duong';
     out.lichMat = out.lichMat === 'am' ? 'am' : 'duong';
     return out;

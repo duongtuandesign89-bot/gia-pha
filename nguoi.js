@@ -23,18 +23,25 @@ GP.nguoi = (function () {
   function ghiChu(p) { return String(p && p.ghiChu || '').trim(); }
   function coTen(p) { return !!(ho(p) || ten(p)); }
 
-  function sinh(p) { return ngayThangNam(p.ngaySinh, p.thangSinh, p.namSinh); }
-
-  /* Âm lịch chỉ là cái nhãn dán lên mốc thời gian, không quy đổi gì cả.
-     Năm mất ghi bằng chữ ("không rõ") thì nhãn lịch vô nghĩa nên bỏ. */
-  function amSinh(p) { return p.lichSinh === 'am'; }
-  function amMat(p) { return p.lichMat === 'am' && typeof p.namMat !== 'string'; }
-
-  /** Năm mất là chữ ("không rõ") thì trả nguyên chữ; ngày/tháng lúc đó vô nghĩa nên bỏ. */
-  function mat(p) {
-    if (typeof p.namMat === 'string') return p.namMat.trim();
-    return ngayThangNam(p.ngayMat, p.thangMat, p.namMat);
+  /* Năm ghi bằng chữ ("Ất Mão", "không rõ") thì vẫn giữ nguyên ngày và tháng nếu có:
+     "biết ngày giỗ nhưng không rõ năm" là trường hợp phổ biến nhất trong gia phả,
+     ẩn ngày tháng đi là làm mất đúng cái người ta cần. */
+  function mocText(ngay, thang, nam) {
+    if (typeof nam === 'string') {
+      var chu = nam.trim();
+      var dm = (ngay && thang) ? hai(ngay) + '/' + hai(thang) : (thang ? hai(thang) : '');
+      return dm && chu ? dm + ' ' + chu : (dm || chu);
+    }
+    return ngayThangNam(ngay, thang, nam);
   }
+
+  function sinh(p) { return mocText(p.ngaySinh, p.thangSinh, p.namSinh); }
+
+  /* Âm lịch chỉ là cái nhãn dán lên mốc thời gian, không quy đổi gì cả. */
+  function amSinh(p) { return p.lichSinh === 'am'; }
+  function amMat(p) { return p.lichMat === 'am'; }
+
+  function mat(p) { return mocText(p.ngayMat, p.thangMat, p.namMat); }
 
   /** Bỏ dấu để tìm "an" ra "Ân", "duc" ra "Đức". Chữ đ không tách được bằng NFD nên xử riêng. */
   function boDau(s) {
