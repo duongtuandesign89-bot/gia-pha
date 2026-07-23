@@ -17,17 +17,39 @@ GP.editor = (function () {
     });
   }
 
-  function inputRow(nodeId, who, index, field, label, value, type) {
+  /* Các ô chỉ nhận chữ số: số chữ số tối đa và khoảng hợp lệ. */
+  var SO = {
+    ngaySinh: { dai: 2, min: 1, max: 31 }, thangSinh: { dai: 2, min: 1, max: 12 },
+    namSinh: { dai: 4, min: 1, max: 2200 },
+    ngayMat: { dai: 2, min: 1, max: 31 }, thangMat: { dai: 2, min: 1, max: 12 },
+    namMat: { dai: 4, min: 1, max: 2200 }
+  };
+
+  function inputRow(nodeId, who, index, field, label, value, goiY) {
     var k = [nodeId, who, index, field].join('.');
+    var so = SO[field];
     return '<label class="o-nhap">' +
-      '<span>' + label + '</span>' +
+      (label ? '<span>' + label + '</span>' : '') +
       '<input data-k="' + k + '" data-node="' + nodeId + '" data-who="' + who +
       '" data-index="' + index + '" data-field="' + field + '"' +
-      // năm là text chứ không phải number: number bị lăn chuột làm đổi giá trị,
+      // số là text chứ không phải type=number: number bị lăn chuột làm đổi giá trị,
       // mà người dùng lăn chuột liên tục để phóng to cây
-      ' type="text"' + (type === 'nam' ? ' inputmode="numeric" maxlength="4" class="o-nam"' : '') +
+      ' type="text"' +
+      (so ? ' inputmode="numeric" maxlength="' + so.dai + '" class="o-so"' : '') +
+      (goiY ? ' placeholder="' + goiY + '"' : '') +
       ' value="' + esc(value == null ? '' : value) + '">' +
       '</label>';
+  }
+
+  /** Một mốc thời gian: ngày / tháng / năm, điền được bao nhiêu thì điền. */
+  function mocThoiGian(nodeId, who, index, p, nhan, fNgay, fThang, fNam) {
+    return '<div class="moc">' +
+      '<span class="nhan-moc">' + nhan + '</span>' +
+      '<div class="hang-3">' +
+      inputRow(nodeId, who, index, fNgay, '', p[fNgay], 'ngày') +
+      inputRow(nodeId, who, index, fThang, '', p[fThang], 'tháng') +
+      inputRow(nodeId, who, index, fNam, '', p[fNam], 'năm') +
+      '</div></div>';
   }
 
   function personBlock(nodeId, who, index, p, tieuDe, coXoa) {
@@ -39,10 +61,9 @@ GP.editor = (function () {
       inputRow(nodeId, who, index, 'hoDem', 'Họ & tên đệm', p.hoDem) +
       inputRow(nodeId, who, index, 'ten', 'Tên riêng', p.ten) +
       '</div>' +
-      '<div class="hang-2">' +
-      inputRow(nodeId, who, index, 'namSinh', 'Năm sinh', p.namSinh, 'nam') +
-      inputRow(nodeId, who, index, 'namMat', 'Năm mất', p.namMat, 'nam') +
-      '</div>' +
+      mocThoiGian(nodeId, who, index, p, 'Sinh', 'ngaySinh', 'thangSinh', 'namSinh') +
+      mocThoiGian(nodeId, who, index, p, 'Mất', 'ngayMat', 'thangMat', 'namMat') +
+      '<p class="chu-thich">Chỉ nhớ năm thì bỏ trống ngày và tháng.</p>' +
       inputRow(nodeId, who, index, 'ghiChu', 'Ghi chú', p.ghiChu) +
       '</div>';
     return h;
@@ -161,7 +182,7 @@ GP.editor = (function () {
     if (on.select) on.select(null);
   }
 
-  function parseYear(v) {
+  function parseSo(v) {
     var s = String(v).trim();
     if (!s) return null;
     var n = parseInt(s, 10);
@@ -178,10 +199,11 @@ GP.editor = (function () {
 
     body.addEventListener('input', function (e) {
       var t = e.target;
-      if (!t.dataset.field) return;
-      var laNam = t.dataset.field === 'namSinh' || t.dataset.field === 'namMat';
-      if (laNam) {
-        var sach = t.value.replace(/[^0-9]/g, '').slice(0, 4);
+      var field = t.dataset.field;
+      if (!field) return;
+      var so = SO[field];
+      if (so) {
+        var sach = t.value.replace(/[^0-9]/g, '').slice(0, so.dai);
         if (sach !== t.value) {
           var pos = t.selectionStart - (t.value.length - sach.length);
           t.value = sach;
@@ -190,8 +212,23 @@ GP.editor = (function () {
       }
       dangGo = true;
       GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index,
-        t.dataset.field, laNam ? parseYear(t.value) : t.value);
+        field, so ? parseSo(t.value) : t.value);
       dangGo = false;
+    });
+
+    /* Kẹp về khoảng hợp lệ khi rời ô, chứ không kẹp lúc đang gõ: gõ "3" để tới "31"
+       mà bị nhảy thành "3" ngay thì không nhập nổi. */
+    body.addEventListener('change', function (e) {
+      var t = e.target;
+      var so = SO[t.dataset.field];
+      if (!so) return;
+      var v = parseSo(t.value);
+      if (v == null) return;
+      var kep = Math.min(so.max, Math.max(so.min, v));
+      if (kep !== v) {
+        t.value = kep;
+        GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index, t.dataset.field, kep);
+      }
     });
 
     body.addEventListener('change', function (e) {

@@ -22,11 +22,25 @@ GP.render = (function () {
     });
   }
 
-  function yearsText(p) {
-    if (p.namSinh && p.namMat) return p.namSinh + ' – ' + p.namMat;
-    if (p.namSinh) return 'sinh ' + p.namSinh;
-    if (p.namMat) return 'mất ' + p.namMat;
-    return '';
+  function hai(v) { return (v < 10 ? '0' : '') + v; }
+
+  /** "12/05/1890" nếu đủ, "05/1890" nếu thiếu ngày, "1890" nếu chỉ có năm.
+      Ngày mà không có tháng thì bỏ ngày — "12//1890" vô nghĩa. */
+  function ngayThangNam(ngay, thang, nam) {
+    var p = [];
+    if (ngay && thang) p.push(hai(ngay));
+    if (thang) p.push(hai(thang));
+    if (nam) p.push(nam);
+    return p.join('/');
+  }
+
+  function lifeHTML(p) {
+    var s = ngayThangNam(p.ngaySinh, p.thangSinh, p.namSinh);
+    var m = ngayThangNam(p.ngayMat, p.thangMat, p.namMat);
+    var out = [];
+    if (s) out.push('<span class="nhan-nam">S:</span>' + esc(s));
+    if (m) out.push('<span class="nhan-nam">M:</span>' + esc(m));
+    return out.join('<span class="cach-nam"></span>');
   }
 
   /* ---------- dựng DOM ---------- */
@@ -41,7 +55,7 @@ GP.render = (function () {
       (chuaNhap ? '<span class="trong">chưa nhập</span>' : '<b>' + ho + '</b>') +
       '</div>' +
       '<div class="dong-ten">' + ten + '</div>' +
-      '<div class="dong-nam">' + esc(yearsText(p)) + '</div>' +
+      '<div class="dong-nam">' + lifeHTML(p) + '</div>' +
       '</div>';
   }
 
@@ -253,6 +267,7 @@ GP.render = (function () {
     fit: fit,
     zoomBy: zoomBy,
     centerOn: centerOn,
+    ngayThangNam: ngayThangNam,
     getScale: function () { return view.scale; },
     setSelected: function (id) { selectedId = id; },
     setMatches: function (ids) {

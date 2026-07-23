@@ -28,13 +28,31 @@ Cấu trúc một ô:
 {
   "id": "n7",
   "doiTruyen": "chong",        // ai là người huyết thống của dòng họ: "chong" | "vo"
-  "chong": { "hoDem": "Nguyễn Văn", "ten": "An", "namSinh": 1890, "namMat": 1960, "ghiChu": "" },
-  "vo":    [ { "hoDem": "Trần Thị", "ten": "Bé", "namSinh": 1895, "namMat": 1972, "ghiChu": "" } ],
+  "chong": {
+    "hoDem": "Nguyễn Văn", "ten": "An",
+    "ngaySinh": 12, "thangSinh": 5, "namSinh": 1890,
+    "ngayMat": 3, "thangMat": 11, "namMat": 1960,
+    "ghiChu": ""
+  },
+  "vo": [ { "hoDem": "Trần Thị", "ten": "Bé", "thangSinh": 8, "namSinh": 1895, "namMat": 1972 } ],
   "con":   ["n8", "n9"],       // thứ tự trong mảng = thứ tự con trưởng → con út
   "meIndex": 0,                // ô này là con của bà thứ mấy của đời trên
   "thuGon": false
 }
 ```
+
+Ngày và tháng để riêng khỏi năm, phần nào không biết thì `null` — phần lớn các cụ đời trước chỉ
+còn nhớ mỗi năm. Trong ô hiển thị `S:` là sinh, `M:` là mất, và chỉ hiện phần có dữ liệu:
+
+| Có gì | Hiện ra |
+|---|---|
+| 12 / 5 / 1890 | `S: 12/05/1890` |
+| 8 / 1895 | `S: 08/1895` |
+| 1960 | `S: 1960` |
+| ngày mà thiếu tháng | bỏ ngày, chỉ hiện năm |
+
+Tệp `.json` xuất từ bản trước (chỉ có `namSinh`/`namMat`) vẫn mở lại được — các trường ngày/tháng
+tự được bù thành `null`.
 
 `vo` là mảng để ghi được vợ cả / vợ hai. Ô chỉ có một người (chưa lập gia đình, mất sớm) thì để
 trống bên còn lại.

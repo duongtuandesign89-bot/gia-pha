@@ -18,11 +18,18 @@ GP.data = (function () {
     return 'n' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
   }
 
+  /* Ngày và tháng để riêng chứ không gộp vào một chuỗi ngày-tháng-năm, vì phần lớn
+     các cụ đời trước chỉ còn nhớ mỗi năm. Thiếu phần nào thì phần đó là null.
+     Tên trường `namSinh`/`namMat` giữ nguyên như bản đầu để tệp cũ mở lại được. */
   function newPerson(hoDem, ten, namSinh, namMat) {
     return {
       hoDem: hoDem || '',
       ten: ten || '',
+      ngaySinh: null,
+      thangSinh: null,
       namSinh: namSinh == null ? null : namSinh,
+      ngayMat: null,
+      thangMat: null,
       namMat: namMat == null ? null : namMat,
       ghiChu: ''
     };
@@ -54,7 +61,10 @@ GP.data = (function () {
     var root = t.nodes[t.rootId];
     t.tenDongHo = 'Gia phả họ Nguyễn';
     root.chong = newPerson('Nguyễn Văn', 'An', 1890, 1960);
+    root.chong.ngaySinh = 12; root.chong.thangSinh = 5;
+    root.chong.ngayMat = 3; root.chong.thangMat = 11;
     root.vo = [newPerson('Trần Thị', 'Bé', 1895, 1972)];
+    root.vo[0].thangSinh = 8;   // chỉ nhớ tháng, không nhớ ngày
 
     function add(parent, chong, vo, doiTruyen) {
       var n = newNode();
