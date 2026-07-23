@@ -89,7 +89,7 @@ GP.xuatAnh = (function () {
     var traiChu = x + 16;
     var traiTen = traiChu + 30;
     var rongChu = w - (traiTen - x) - 12;
-    var cao = L.PERSON + L.ghiChuHeight(p);
+    var cao = L.personHeight(p);
 
     if (huyetThong) {
       ctx.fillStyle = MAU.son;
@@ -118,34 +118,41 @@ GP.xuatAnh = (function () {
     ctx.fillText(catChu(ctx, GP.nguoi.ten(p), rongChu), traiTen, y + 40);
 
     var s = GP.nguoi.sinh(p), m = GP.nguoi.mat(p);
-    var cx = traiTen, yNam = y + 57;
-    ctx.font = '700 12px ' + SANS;
-    if (s) {
-      ctx.fillStyle = MAU.vang;
-      ctx.fillText('S:', cx, yNam);
-      cx += ctx.measureText('S:').width + 3;
-      ctx.font = '12px ' + SANS;
-      ctx.fillStyle = MAU.mucNhat;
-      ctx.fillText(s, cx, yNam);
-      cx += ctx.measureText(s).width + 12;
-    }
-    if (m) {
+    var cx = traiTen, yNam = y + 57, phai = x + w - 12;
+
+    /* Vẽ "S: 12/05/1890" rồi dấu ÂL nhỏ nhấc lên, giống hệt bản HTML. */
+    function veMoc(nhan, chu, am) {
       ctx.font = '700 12px ' + SANS;
       ctx.fillStyle = MAU.vang;
-      ctx.fillText('M:', cx, yNam);
-      cx += ctx.measureText('M:').width + 3;
+      ctx.fillText(nhan + ':', cx, yNam);
+      cx += ctx.measureText(nhan + ':').width + 3;
       ctx.font = '12px ' + SANS;
       ctx.fillStyle = MAU.mucNhat;
-      ctx.fillText(catChu(ctx, m, x + w - 12 - cx), cx, yNam);
+      var vua = catChu(ctx, chu, phai - cx);
+      ctx.fillText(vua, cx, yNam);
+      cx += ctx.measureText(vua).width;
+      if (am) {
+        ctx.font = '700 8.5px ' + SANS;
+        ctx.fillStyle = MAU.son;
+        ctx.fillText('ÂL', cx + 2, yNam - 5);
+        cx += ctx.measureText('ÂL').width + 2;
+      }
+      cx += 10;
     }
+
+    var hai = GP.layout.namHaiDong(p);
+    if (s) veMoc('S', s, GP.nguoi.amSinh(p));
+    if (hai) { cx = traiTen; yNam += GP.layout.NAM; }   // xuống dòng đúng chỗ layout đã chừa
+    if (m) veMoc('M', m, GP.nguoi.amMat(p));
 
     var gc = GP.nguoi.ghiChu(p);
     if (gc) {
       ctx.font = 'italic 11.5px ' + SANS;
       ctx.fillStyle = MAU.ghiChu;
       var dong = ngatDong(ctx, gc, rongChu, 2);
+      var yGhi = y + 75 + (hai ? GP.layout.NAM : 0);
       for (var i = 0; i < dong.length; i++) {
-        ctx.fillText(dong[i], traiTen, y + 75 + i * 17);
+        ctx.fillText(dong[i], traiTen, yGhi + i * 17);
       }
     }
 

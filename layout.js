@@ -13,6 +13,7 @@ GP.layout = (function () {
      phần chữ trong ô mà không đo lại. */
   var HEADER = 25;    // dải "Đời n"
   var PERSON = 65;    // một người: dòng họ (21) + tên riêng (21) + năm (16) + đệm (7)
+  var NAM = 16;       // một dòng năm sinh/mất (đã nằm trong PERSON)
   var GHI_CHU = 17;   // mỗi dòng ghi chú
   var PAD = 14;       // đệm đáy 10 + viền 2 + dư 2
 
@@ -25,11 +26,28 @@ GP.layout = (function () {
     return (t.length > 30 ? GHI_CHU * 2 : GHI_CHU) + 2;
   }
 
+  /* Dòng năm rộng chừng 195px. "S: 28/12/1918ÂL  M: 30/11/1990ÂL" thì không đủ, phải
+     xuống hai dòng. Ở đây không đo được chữ nên ước lượng theo độ dài; hằng số dưới đây
+     hiệu chỉnh từ số đo thật trên trình duyệt, và cố ý xuống dòng hơi sớm — thừa chỗ thì
+     chỉ trống vài pixel, thiếu chỗ thì mất năm mất trên màn hình.
+
+     ĐÂY LÀ CHỖ DUY NHẤT QUYẾT ĐỊNH một hay hai dòng. render.js và xuat-anh.js đều hỏi
+     hàm này, nhờ vậy ba nơi không bao giờ lệch nhau. */
+  function namHaiDong(p) {
+    var s = GP.nguoi.sinh(p), m = GP.nguoi.mat(p);
+    if (!s || !m) return false;          // chỉ một mốc thì chắc chắn đủ chỗ
+    var uoc = 34 + 7 * s.length + 7 * m.length +
+      (GP.nguoi.amSinh(p) ? 14 : 0) + (GP.nguoi.amMat(p) ? 14 : 0);
+    return uoc > 176;
+  }
+
+  function personHeight(p) {
+    return PERSON + (namHaiDong(p) ? NAM : 0) + ghiChuHeight(p);
+  }
+
   function nodeHeight(n) {
-    var h = HEADER + PAD + PERSON + ghiChuHeight(n.chong);
-    for (var i = 0; i < n.vo.length; i++) {
-      h += PERSON + ghiChuHeight(n.vo[i]);
-    }
+    var h = HEADER + PAD + personHeight(n.chong);
+    for (var i = 0; i < n.vo.length; i++) h += personHeight(n.vo[i]);
     return h;
   }
 
@@ -138,8 +156,10 @@ GP.layout = (function () {
   return {
     compute: compute,
     nodeHeight: nodeHeight,
+    personHeight: personHeight,
     ghiChuHeight: ghiChuHeight,
+    namHaiDong: namHaiDong,
     NODE_W: NODE_W, H_GAP: H_GAP, V_GAP: V_GAP,
-    HEADER: HEADER, PERSON: PERSON, GHI_CHU: GHI_CHU, PAD: PAD
+    HEADER: HEADER, PERSON: PERSON, NAM: NAM, GHI_CHU: GHI_CHU, PAD: PAD
   };
 })();

@@ -22,13 +22,21 @@ GP.render = (function () {
     });
   }
 
+  /* "ÂL" viết nhỏ nhấc lên chứ không phải chữ thường: dòng năm chỉ rộng chừng 195px,
+     thêm hai chữ cỡ thường cho cả sinh lẫn mất là tràn. */
+  function mocHTML(nhan, chu, am) {
+    return '<span class="nhan-nam">' + nhan + ':</span>' + esc(chu) +
+      (am ? '<sup class="lich-am" title="âm lịch">ÂL</sup>' : '');
+  }
+
   function lifeHTML(p) {
     var s = GP.nguoi.sinh(p);
     var m = GP.nguoi.mat(p);
     var out = [];
-    if (s) out.push('<span class="nhan-nam">S:</span>' + esc(s));
-    if (m) out.push('<span class="nhan-nam">M:</span>' + esc(m));
-    return out.join('<span class="cach-nam"></span>');
+    if (s) out.push(mocHTML('S', s, GP.nguoi.amSinh(p)));
+    if (m) out.push(mocHTML('M', m, GP.nguoi.amMat(p)));
+    // <br> chứ không để CSS tự ngắt: chỗ ngắt phải trùng đúng chỗ layout.js đã chừa
+    return out.join(GP.layout.namHaiDong(p) ? '<br>' : '<span class="cach-nam"></span>');
   }
 
   /* ---------- dựng DOM ---------- */
@@ -51,7 +59,7 @@ GP.render = (function () {
       (chuaNhap ? '<span class="trong">chưa nhập</span>' : '<b>' + ho + '</b>') +
       '</div>' +
       '<div class="dong-ten">' + ten + '</div>' +
-      '<div class="dong-nam">' + lifeHTML(p) + '</div>' +
+      '<div class="dong-nam" title="' + esc(GP.nguoi.moTa(p)) + '">' + lifeHTML(p) + '</div>' +
       ghiChuHTML(p) +
       '</div>';
   }

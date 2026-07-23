@@ -34,8 +34,8 @@ Cấu trúc một ô:
   "doiTruyen": "chong",        // ai là người huyết thống của dòng họ: "chong" | "vo"
   "chong": {
     "hoDem": "Nguyễn Văn", "ten": "An",
-    "ngaySinh": 12, "thangSinh": 5, "namSinh": 1890,
-    "ngayMat": 3, "thangMat": 11, "namMat": 1960,
+    "ngaySinh": 12, "thangSinh": 5, "namSinh": 1890, "lichSinh": "duong",
+    "ngayMat": 15, "thangMat": 8, "namMat": 1960,    "lichMat": "am",
     "ghiChu": ""
   },
   "vo": [ { "hoDem": "Trần Thị", "ten": "Bé", "thangSinh": 8, "namSinh": 1895, "namMat": 1972 } ],
@@ -62,6 +62,15 @@ tự được bù thành `null`.
 năm mất nhận cả `"không rõ"`, `"mất lúc nhỏ"`. Gõ toàn chữ số thì lưu thành số, còn lại lưu nguyên
 chữ. Khi năm mất là chữ thì ngày và tháng mất không hiện ra — `12/05/không rõ` vô nghĩa.
 
+**Âm lịch.** `lichSinh`/`lichMat` là `"duong"` hoặc `"am"`, mặc định dương lịch. Rất nhiều gia phả
+chỉ ghi ngày âm, nhất là ngày giỗ. Ứng dụng **chỉ ghi nhận mốc đó thuộc lịch nào, không quy đổi** —
+quy đổi cần thuật toán âm lịch riêng, và quy sai thì hỏng mất dữ liệu gốc. Trong ô, mốc âm lịch có
+chữ `ÂL` nhỏ màu đỏ bên cạnh. Năm mất ghi bằng chữ thì nhãn lịch không hiện (vô nghĩa).
+
+Nếu cả sinh lẫn mất đều dài (đủ ngày/tháng/năm, lại thêm dấu âm lịch) thì dòng năm tự tách làm hai
+dòng thay vì bị cắt cụt. `GP.layout.namHaiDong()` là chỗ **duy nhất** quyết định việc đó — cả bản
+HTML, bản Canvas và phần tính chiều cao ô đều hỏi hàm này nên không bao giờ lệch nhau.
+
 **Ghi chú hiện ngay trong ô** dưới dòng năm, in nghiêng. Dài quá thì cắt ở hai dòng, rê chuột vào
 để đọc trọn. Muốn ghi dài thì viết trong bảng sửa, ô cây chỉ hiện phần đầu.
 
@@ -79,6 +88,7 @@ con rể. Người mang huyết thống có vạch đỏ bên trái.
 | Thêm con | Nút `＋ con` hiện ra khi rê chuột lên ô, hoặc nút trong bảng sửa |
 | Thêm đời phía trên gốc | Mở ô đời 1 → "Thêm một đời phía trên" |
 | Đổi thứ tự các con | Mũi tên ↑ ↓ trong danh sách "Các con" |
+| Dương lịch / âm lịch | Nút **DL / ÂL** cạnh mỗi mốc, bấm để đổi. Đỏ là âm lịch. |
 | Xoá | Trong bảng sửa: xoá cả nhánh, hoặc chỉ xoá ô đó và cho các con nối lên đời trên |
 | Thu gọn nhánh | Nút `−` dưới đáy ô; khi gấp lại hiện `+N` là số ô đang ẩn |
 | Tìm người | Gõ vào ô tìm (phím `/`), Enter để nhảy tới kết quả kế tiếp. Không cần gõ dấu. |
@@ -129,4 +139,7 @@ Một ngón kéo để di chuyển, hai ngón chụm để phóng to.
 
 ## Chưa làm
 
-Ảnh chân dung, ngày âm lịch, mộ phần, tiểu sử dài, đăng nhập, nhiều người cùng sửa một lúc.
+Ảnh chân dung, mộ phần, tiểu sử dài, đăng nhập, nhiều người cùng sửa một lúc.
+
+Về âm lịch, **chưa** có: quy đổi âm ⇄ dương, tháng nhuận (`tháng 5 nhuận` chưa ghi riêng được),
+và năm can chi (`Ất Mão`) — ô năm sinh hiện chỉ nhận chữ số, chỉ ô năm mất mới ghi được chữ.

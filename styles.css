@@ -149,7 +149,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-variant-numeric: tabular-nums; min-height: 16px;
 }
 .box .nhan-nam { font-weight: 700; color: var(--vang); margin-right: 3px; }
-.box .cach-nam { display: inline-block; width: 12px; }
+.box .cach-nam { display: inline-block; width: 10px; }
+/* dấu âm lịch: nhỏ và nhấc lên cho đỡ tốn bề ngang của dòng năm */
+.box .lich-am {
+  font-size: 8.5px; font-weight: 700; letter-spacing: .03em;
+  color: var(--son); margin-left: 2px; vertical-align: super; line-height: 0;
+}
+
+/* line-height cố định 16px cho khớp hằng số NAM trong layout.js — dòng năm có thể
+   thành hai dòng (khi có <br>) nên chiều cao mỗi dòng phải xác định, không để thừa kế. */
+.box .dong-nam { line-height: 16px; }
 
 /* Ghi chú cắt ở 2 dòng — layout.js chừa sẵn đúng chừng đó chỗ. Dài hơn thì rê chuột đọc. */
 .box .dong-ghi-chu {
@@ -214,9 +223,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ngày / tháng hẹp, năm rộng gấp rưỡi vì có 4 chữ số */
 .hang-3 { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 6px; }
 /* ô năm mất còn ghi được chữ nên phải rộng hơn */
-.hang-3.cuoi-rong { grid-template-columns: 1fr 1fr 2.8fr; }
+.hang-3.cuoi-rong { grid-template-columns: 1fr 1fr 2.4fr; }
 
-.moc { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.moc { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+/* nút gạt DL/ÂL: trạng thái hiện tại nằm ngay trên mặt nút, bấm là đổi */
+.nut-lich {
+  flex: none; width: 38px; padding: 7px 0; border-radius: 6px;
+  border: 1px solid var(--vien); background: #fff;
+  font: 600 11px/1 -apple-system, sans-serif; color: var(--muc-nhat);
+}
+.nut-lich:hover { background: var(--giay-dam); }
+.nut-lich.am { background: var(--son-nhat); border-color: var(--son); color: var(--son); }
 .moc .nhan-moc {
   flex: none; width: 34px; font-size: 11px; color: var(--muc-nhat);
   text-align: right; padding-top: 1px;
@@ -231,7 +248,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border: 1px solid var(--vien); border-radius: 6px; background: #fff;
 }
 .o-nhap input:focus { outline: none; border-color: var(--vang); box-shadow: 0 0 0 3px rgba(176, 141, 87, .15); }
-.o-nhap input.o-so { font-variant-numeric: tabular-nums; letter-spacing: .04em; text-align: center; }
+/* đệm ngang hẹp: ô ngày/tháng rất hẹp, để 9px thì chữ gợi ý “tháng” bị cụt */
+.o-nhap input.o-so {
+  font-variant-numeric: tabular-nums; letter-spacing: .04em;
+  text-align: center; padding-left: 4px; padding-right: 4px;
+}
 .o-nhap input::placeholder { color: #c3b8a5; font-size: 12px; letter-spacing: 0; }
 
 .hang-radio { display: flex; gap: 18px; }
@@ -379,6 +400,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   /* ngón tay to hơn con trỏ chuột */
   .o-nhap input, #bang-sua select { padding: 10px 11px; font-size: 16px; }
   .dieu-khien button { width: 34px; height: 34px; }
+  .nut-lich { width: 44px; padding: 10px 0; font-size: 12px; }
   .ten-con { padding: 7px 5px; }
   .nut-chinh, .nut-phu { padding: 11px 10px; }
   .box .nut-gap { min-width: 34px; height: 26px; bottom: -14px; font-size: 12px; }

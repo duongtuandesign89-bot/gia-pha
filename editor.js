@@ -49,15 +49,21 @@ GP.editor = (function () {
       '</label>';
   }
 
-  /** Một mốc thời gian: ngày / tháng / năm, điền được bao nhiêu thì điền. */
-  function mocThoiGian(nodeId, who, index, p, nhan, fNgay, fThang, fNam, chuDuoc) {
+  /** Một mốc thời gian: ngày / tháng / năm + nút gạt dương lịch ⇄ âm lịch. */
+  function mocThoiGian(nodeId, who, index, p, nhan, fNgay, fThang, fNam, fLich, chuDuoc) {
+    var am = p[fLich] === 'am';
     return '<div class="moc">' +
       '<span class="nhan-moc">' + nhan + '</span>' +
       '<div class="hang-3' + (chuDuoc ? ' cuoi-rong' : '') + '">' +
       inputRow(nodeId, who, index, fNgay, '', p[fNgay], 'ngày') +
       inputRow(nodeId, who, index, fThang, '', p[fThang], 'tháng') +
       inputRow(nodeId, who, index, fNam, '', p[fNam], chuDuoc ? 'năm, hoặc “không rõ”' : 'năm') +
-      '</div></div>';
+      '</div>' +
+      '<button class="nut-lich' + (am ? ' am' : '') + '" data-act="doi-lich"' +
+      ' data-who="' + who + '" data-index="' + index + '" data-lich="' + fLich + '"' +
+      ' title="Đang là ' + (am ? 'âm lịch' : 'dương lịch') + ' — bấm để đổi">' +
+      (am ? 'ÂL' : 'DL') + '</button>' +
+      '</div>';
   }
 
   function personBlock(nodeId, who, index, p, tieuDe, coXoa) {
@@ -69,10 +75,12 @@ GP.editor = (function () {
       inputRow(nodeId, who, index, 'hoDem', 'Họ & tên đệm', p.hoDem) +
       inputRow(nodeId, who, index, 'ten', 'Tên riêng', p.ten) +
       '</div>' +
-      mocThoiGian(nodeId, who, index, p, 'Sinh', 'ngaySinh', 'thangSinh', 'namSinh') +
-      mocThoiGian(nodeId, who, index, p, 'Mất', 'ngayMat', 'thangMat', 'namMat', true) +
+      mocThoiGian(nodeId, who, index, p, 'Sinh', 'ngaySinh', 'thangSinh', 'namSinh', 'lichSinh') +
+      mocThoiGian(nodeId, who, index, p, 'Mất', 'ngayMat', 'thangMat', 'namMat', 'lichMat', true) +
       '<p class="chu-thich">Chỉ nhớ năm thì bỏ trống ngày và tháng. Ô năm mất ghi được cả chữ ' +
-      '(“không rõ”, “mất lúc nhỏ”) — khi đó ngày và tháng mất sẽ không hiện ra.</p>' +
+      '(“không rõ”, “mất lúc nhỏ”) — khi đó ngày và tháng mất sẽ không hiện ra. ' +
+      'Nút <b>DL/ÂL</b> đánh dấu mốc đó chép theo dương lịch hay âm lịch; ứng dụng chỉ ghi nhận ' +
+      'chứ không quy đổi.</p>' +
       inputRow(nodeId, who, index, 'ghiChu', 'Ghi chú', p.ghiChu) +
       '</div>';
     return h;
@@ -252,7 +260,10 @@ GP.editor = (function () {
       if (!btn) return;
       var act = btn.dataset.act;
 
-      if (act === 'them-vo') GP.data.addSpouse(currentId);
+      if (act === 'doi-lich') {
+        GP.data.doiLich(currentId, btn.dataset.who, +btn.dataset.index, btn.dataset.lich);
+      }
+      else if (act === 'them-vo') GP.data.addSpouse(currentId);
       else if (act === 'xoa-vo') GP.data.removeSpouse(currentId, +btn.dataset.index);
       else if (act === 'them-con') {
         var newId = GP.data.addChild(currentId);

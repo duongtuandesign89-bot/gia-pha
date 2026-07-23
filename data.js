@@ -23,7 +23,11 @@ GP.data = (function () {
      Tên trường `namSinh`/`namMat` giữ nguyên như bản đầu để tệp cũ mở lại được.
 
      `namMat` nhận cả chữ ("không rõ", "mất lúc nhỏ") vì nhiều trường hợp chỉ biết
-     là đã mất chứ không biết năm. Khi là chữ thì ngày/tháng mất bị bỏ qua lúc hiển thị. */
+     là đã mất chứ không biết năm. Khi là chữ thì ngày/tháng mất bị bỏ qua lúc hiển thị.
+
+     `lichSinh`/`lichMat` là 'duong' hoặc 'am'. Nhiều gia phả chỉ ghi ngày âm, nhất là ngày
+     giỗ. Ở đây chỉ ghi nhận ngày đó thuộc lịch nào chứ KHÔNG quy đổi qua lại — quy đổi cần
+     thuật toán âm lịch riêng, và quy sai thì hỏng dữ liệu gốc không lấy lại được. */
   function newPerson(hoDem, ten, namSinh, namMat) {
     return {
       hoDem: hoDem || '',
@@ -31,9 +35,11 @@ GP.data = (function () {
       ngaySinh: null,
       thangSinh: null,
       namSinh: namSinh == null ? null : namSinh,
+      lichSinh: 'duong',
       ngayMat: null,
       thangMat: null,
       namMat: namMat == null ? null : namMat,
+      lichMat: 'duong',
       ghiChu: ''
     };
   }
@@ -83,6 +89,8 @@ GP.data = (function () {
 
     var c1 = add(root, newPerson('Nguyễn Văn', 'Bình', 1915, 1988), newPerson('Lê Thị', 'Hoa', 1920, 1995));
     c1.chong.ghiChu = 'Liệt sĩ';
+    c1.chong.ngayMat = 15; c1.chong.thangMat = 8;
+    c1.chong.lichMat = 'am';        // giỗ tính theo ngày âm
     var c2 = add(root, newPerson('Nguyễn Văn', 'Cường', 1918, 1990), newPerson('Phạm Thị', 'Lan', 1922, 2001));
     var c3 = add(root, newPerson('Đỗ Văn', 'Tâm', 1919, 1993), newPerson('Nguyễn Thị', 'Mai', 1923, 2004), 'vo');
 
@@ -134,6 +142,8 @@ GP.data = (function () {
   function chuanHoaNguoi(p) {
     var out = Object.assign(newPerson(), p || {});
     out.namMat = chuanHoaNamMat(out.namMat);
+    out.lichSinh = out.lichSinh === 'am' ? 'am' : 'duong';
+    out.lichMat = out.lichMat === 'am' ? 'am' : 'duong';
     return out;
   }
 
@@ -304,6 +314,17 @@ GP.data = (function () {
     commit();
   }
 
+  /** Gạt một mốc giữa dương lịch và âm lịch. `field` là 'lichSinh' hoặc 'lichMat'. */
+  function doiLich(nodeId, who, index, field) {
+    var n = node(nodeId);
+    if (!n) return;
+    var p = who === 'chong' ? n.chong : n.vo[index];
+    if (!p || (field !== 'lichSinh' && field !== 'lichMat')) return;
+    mark(null);
+    p[field] = p[field] === 'am' ? 'duong' : 'am';
+    commit();
+  }
+
   function setMeIndex(nodeId, index) {
     mark(null);
     node(nodeId).meIndex = index;
@@ -442,7 +463,7 @@ GP.data = (function () {
     parentMap: parentMap, ancestors: ancestors, branchSize: branchSize,
     countPeople: countPeople, hasName: hasName, fullName: fullName,
     setTenDongHo: setTenDongHo, updatePerson: updatePerson,
-    setDoiTruyen: setDoiTruyen, setMeIndex: setMeIndex,
+    setDoiTruyen: setDoiTruyen, setMeIndex: setMeIndex, doiLich: doiLich,
     addSpouse: addSpouse, removeSpouse: removeSpouse,
     addChild: addChild, addParentAboveRoot: addParentAboveRoot,
     moveChild: moveChild, deleteNode: deleteNode,

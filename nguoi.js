@@ -25,6 +25,11 @@ GP.nguoi = (function () {
 
   function sinh(p) { return ngayThangNam(p.ngaySinh, p.thangSinh, p.namSinh); }
 
+  /* Âm lịch chỉ là cái nhãn dán lên mốc thời gian, không quy đổi gì cả.
+     Năm mất ghi bằng chữ ("không rõ") thì nhãn lịch vô nghĩa nên bỏ. */
+  function amSinh(p) { return p.lichSinh === 'am'; }
+  function amMat(p) { return p.lichMat === 'am' && typeof p.namMat !== 'string'; }
+
   /** Năm mất là chữ ("không rõ") thì trả nguyên chữ; ngày/tháng lúc đó vô nghĩa nên bỏ. */
   function mat(p) {
     if (typeof p.namMat === 'string') return p.namMat.trim();
@@ -44,8 +49,18 @@ GP.nguoi = (function () {
     return boDau(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'gia-pha';
   }
 
+  /** Câu đầy đủ để rê chuột đọc: "Sinh 12/05/1890 âm lịch · Mất 1960". */
+  function moTa(p) {
+    var ra = [];
+    var s = sinh(p), m = mat(p);
+    if (s) ra.push('Sinh ' + s + (amSinh(p) ? ' âm lịch' : ''));
+    if (m) ra.push('Mất ' + m + (amMat(p) ? ' âm lịch' : ''));
+    return ra.join(' · ');
+  }
+
   return {
     ngayThangNam: ngayThangNam,
+    amSinh: amSinh, amMat: amMat, moTa: moTa,
     ho: ho, ten: ten, ghiChu: ghiChu, coTen: coTen,
     sinh: sinh, mat: mat,
     boDau: boDau, slug: slug
