@@ -20,7 +20,10 @@ GP.data = (function () {
 
   /* Ngày và tháng để riêng chứ không gộp vào một chuỗi ngày-tháng-năm, vì phần lớn
      các cụ đời trước chỉ còn nhớ mỗi năm. Thiếu phần nào thì phần đó là null.
-     Tên trường `namSinh`/`namMat` giữ nguyên như bản đầu để tệp cũ mở lại được. */
+     Tên trường `namSinh`/`namMat` giữ nguyên như bản đầu để tệp cũ mở lại được.
+
+     `namMat` nhận cả chữ ("không rõ", "mất lúc nhỏ") vì nhiều trường hợp chỉ biết
+     là đã mất chứ không biết năm. Khi là chữ thì ngày/tháng mất bị bỏ qua lúc hiển thị. */
   function newPerson(hoDem, ten, namSinh, namMat) {
     return {
       hoDem: hoDem || '',
@@ -76,11 +79,15 @@ GP.data = (function () {
       return n;
     }
 
+    root.chong.ghiChu = 'Tổ khai cơ, lập nghiệp tại làng Đông Ngạc';
+
     var c1 = add(root, newPerson('Nguyễn Văn', 'Bình', 1915, 1988), newPerson('Lê Thị', 'Hoa', 1920, 1995));
+    c1.chong.ghiChu = 'Liệt sĩ';
     var c2 = add(root, newPerson('Nguyễn Văn', 'Cường', 1918, 1990), newPerson('Phạm Thị', 'Lan', 1922, 2001));
     var c3 = add(root, newPerson('Đỗ Văn', 'Tâm', 1919, 1993), newPerson('Nguyễn Thị', 'Mai', 1923, 2004), 'vo');
 
-    add(c1, newPerson('Nguyễn Văn', 'Dũng', 1945, null), newPerson('Vũ Thị', 'Nga', 1948, null));
+    var g1 = add(c1, newPerson('Nguyễn Văn', 'Dũng', 1945, null), newPerson('Vũ Thị', 'Nga', 1948, null));
+    g1.vo[0].namMat = 'không rõ';   // biết là đã mất nhưng không rõ năm
     add(c1, newPerson('Nguyễn Văn', 'Đức', 1949, 2018), newPerson('Hoàng Thị', 'Thu', 1952, null));
     add(c2, newPerson('Nguyễn Văn', 'Giang', 1950, null), newPerson('Trần Thị', 'Hồng', 1954, null));
     add(c3, newPerson('Lý Văn', 'Hải', 1947, null), newPerson('Đỗ Thị', 'Thanh', 1950, null), 'vo');
@@ -116,6 +123,20 @@ GP.data = (function () {
     return null;
   }
 
+  /** Chuỗi toàn chữ số thì đưa về số, để chỗ hiển thị chỉ cần phân biệt số với chữ. */
+  function chuanHoaNamMat(v) {
+    if (typeof v !== 'string') return v;
+    var t = v.trim();
+    if (!t) return null;
+    return /^\d{1,4}$/.test(t) ? parseInt(t, 10) : t;
+  }
+
+  function chuanHoaNguoi(p) {
+    var out = Object.assign(newPerson(), p || {});
+    out.namMat = chuanHoaNamMat(out.namMat);
+    return out;
+  }
+
   /** Bù các trường thiếu để dữ liệu cũ/ngoài vẫn dùng được. */
   function normalize(obj) {
     obj.version = 1;
@@ -124,10 +145,8 @@ GP.data = (function () {
       var n = obj.nodes[id];
       n.id = id;
       n.doiTruyen = n.doiTruyen === 'vo' ? 'vo' : 'chong';
-      n.chong = Object.assign(newPerson(), n.chong || {});
-      n.vo = (Array.isArray(n.vo) ? n.vo : []).map(function (v) {
-        return Object.assign(newPerson(), v || {});
-      });
+      n.chong = chuanHoaNguoi(n.chong);
+      n.vo = (Array.isArray(n.vo) ? n.vo : []).map(chuanHoaNguoi);
       if (!n.vo.length) n.vo = [newPerson()];
       n.meIndex = typeof n.meIndex === 'number' ? n.meIndex : 0;
       n.thuGon = !!n.thuGon;

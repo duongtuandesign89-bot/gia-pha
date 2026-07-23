@@ -8,12 +8,29 @@ GP.layout = (function () {
   var NODE_W = 250;   // bề ngang một ô, cố định
   var H_GAP = 30;     // cách nhau giữa hai ô anh em
   var V_GAP = 68;     // cách nhau giữa hai đời
-  var HEADER = 26;    // dải "Đời n"
-  var PERSON = 62;    // một người: dòng họ + dòng tên riêng + dòng năm
-  var PAD = 12;
+  /* Bốn hằng số dưới đây phải khớp với chiều cao thật do CSS dựng ra, nếu không chữ
+     sẽ tràn khỏi đáy ô. Đo bằng offsetHeight trên trình duyệt — đừng sửa styles.css
+     phần chữ trong ô mà không đo lại. */
+  var HEADER = 25;    // dải "Đời n"
+  var PERSON = 65;    // một người: dòng họ (21) + tên riêng (21) + năm (16) + đệm (7)
+  var GHI_CHU = 17;   // mỗi dòng ghi chú
+  var PAD = 14;       // đệm đáy 10 + viền 2 + dư 2
+
+  /* CSS cắt ghi chú ở tối đa 2 dòng. Ở đây không đo được chữ nên ước lượng theo độ dài,
+     và cố ý ước lượng dư: dài quá 30 ký tự thì chừa luôn 2 dòng. Chừa dư chỉ tốn vài
+     pixel trống, chừa thiếu thì chữ tràn ra khỏi ô. */
+  function ghiChuHeight(p) {
+    var t = (p.ghiChu || '').trim();
+    if (!t) return 0;
+    return (t.length > 30 ? GHI_CHU * 2 : GHI_CHU) + 2;
+  }
 
   function nodeHeight(n) {
-    return HEADER + PERSON * (1 + n.vo.length) + PAD;
+    var h = HEADER + PAD + PERSON + ghiChuHeight(n.chong);
+    for (var i = 0; i < n.vo.length; i++) {
+      h += PERSON + ghiChuHeight(n.vo[i]);
+    }
+    return h;
   }
 
   /**

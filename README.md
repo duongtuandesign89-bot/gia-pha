@@ -54,6 +54,13 @@ còn nhớ mỗi năm. Trong ô hiển thị `S:` là sinh, `M:` là mất, và 
 Tệp `.json` xuất từ bản trước (chỉ có `namSinh`/`namMat`) vẫn mở lại được — các trường ngày/tháng
 tự được bù thành `null`.
 
+**Năm mất ghi được bằng chữ.** Nhiều trường hợp chỉ biết người đó đã mất chứ không biết năm, nên ô
+năm mất nhận cả `"không rõ"`, `"mất lúc nhỏ"`. Gõ toàn chữ số thì lưu thành số, còn lại lưu nguyên
+chữ. Khi năm mất là chữ thì ngày và tháng mất không hiện ra — `12/05/không rõ` vô nghĩa.
+
+**Ghi chú hiện ngay trong ô** dưới dòng năm, in nghiêng. Dài quá thì cắt ở hai dòng, rê chuột vào
+để đọc trọn. Muốn ghi dài thì viết trong bảng sửa, ô cây chỉ hiện phần đầu.
+
 `vo` là mảng để ghi được vợ cả / vợ hai. Ô chỉ có một người (chưa lập gia đình, mất sớm) thì để
 trống bên còn lại.
 
@@ -81,6 +88,7 @@ con rể. Người mang huyết thống có vạch đỏ bên trái.
 |---|---|
 | `data.js` | trạng thái, kiểm tra dữ liệu, hoàn tác, lưu vào localStorage |
 | `layout.js` | tính toạ độ cây (thuần tính toán, không đụng DOM) |
+| | ⚠︎ các hằng số chiều cao ở đầu tệp phải khớp với CSS — sửa cỡ chữ trong ô thì phải đo lại |
 | `render.js` | vẽ ô và đường nối, kéo/phóng to |
 | `editor.js` | bảng sửa bên phải |
 | `app.js` | thanh công cụ, tìm kiếm, nhập/xuất, phím tắt |

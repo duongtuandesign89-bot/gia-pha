@@ -18,12 +18,19 @@ GP.editor = (function () {
   }
 
   /* Các ô chỉ nhận chữ số: số chữ số tối đa và khoảng hợp lệ. */
+  /* `namMat` cố ý không nằm đây: nó nhận cả chữ ("không rõ", "mất lúc nhỏ"). */
   var SO = {
     ngaySinh: { dai: 2, min: 1, max: 31 }, thangSinh: { dai: 2, min: 1, max: 12 },
     namSinh: { dai: 4, min: 1, max: 2200 },
-    ngayMat: { dai: 2, min: 1, max: 31 }, thangMat: { dai: 2, min: 1, max: 12 },
-    namMat: { dai: 4, min: 1, max: 2200 }
+    ngayMat: { dai: 2, min: 1, max: 31 }, thangMat: { dai: 2, min: 1, max: 12 }
   };
+
+  /** Gõ toàn số thì lưu thành số, còn lại lưu nguyên chữ. */
+  function giaTriNamMat(v) {
+    var t = String(v).trim();
+    if (!t) return null;
+    return /^\d{1,4}$/.test(t) ? parseInt(t, 10) : t;
+  }
 
   function inputRow(nodeId, who, index, field, label, value, goiY) {
     var k = [nodeId, who, index, field].join('.');
@@ -36,19 +43,20 @@ GP.editor = (function () {
       // mà người dùng lăn chuột liên tục để phóng to cây
       ' type="text"' +
       (so ? ' inputmode="numeric" maxlength="' + so.dai + '" class="o-so"' : '') +
-      (goiY ? ' placeholder="' + goiY + '"' : '') +
+      (field === 'namMat' ? ' maxlength="40"' : '') +
+      (goiY ? ' placeholder="' + esc(goiY) + '"' : '') +
       ' value="' + esc(value == null ? '' : value) + '">' +
       '</label>';
   }
 
   /** Một mốc thời gian: ngày / tháng / năm, điền được bao nhiêu thì điền. */
-  function mocThoiGian(nodeId, who, index, p, nhan, fNgay, fThang, fNam) {
+  function mocThoiGian(nodeId, who, index, p, nhan, fNgay, fThang, fNam, chuDuoc) {
     return '<div class="moc">' +
       '<span class="nhan-moc">' + nhan + '</span>' +
-      '<div class="hang-3">' +
+      '<div class="hang-3' + (chuDuoc ? ' cuoi-rong' : '') + '">' +
       inputRow(nodeId, who, index, fNgay, '', p[fNgay], 'ngày') +
       inputRow(nodeId, who, index, fThang, '', p[fThang], 'tháng') +
-      inputRow(nodeId, who, index, fNam, '', p[fNam], 'năm') +
+      inputRow(nodeId, who, index, fNam, '', p[fNam], chuDuoc ? 'năm, hoặc “không rõ”' : 'năm') +
       '</div></div>';
   }
 
@@ -62,8 +70,9 @@ GP.editor = (function () {
       inputRow(nodeId, who, index, 'ten', 'Tên riêng', p.ten) +
       '</div>' +
       mocThoiGian(nodeId, who, index, p, 'Sinh', 'ngaySinh', 'thangSinh', 'namSinh') +
-      mocThoiGian(nodeId, who, index, p, 'Mất', 'ngayMat', 'thangMat', 'namMat') +
-      '<p class="chu-thich">Chỉ nhớ năm thì bỏ trống ngày và tháng.</p>' +
+      mocThoiGian(nodeId, who, index, p, 'Mất', 'ngayMat', 'thangMat', 'namMat', true) +
+      '<p class="chu-thich">Chỉ nhớ năm thì bỏ trống ngày và tháng. Ô năm mất ghi được cả chữ ' +
+      '(“không rõ”, “mất lúc nhỏ”) — khi đó ngày và tháng mất sẽ không hiện ra.</p>' +
       inputRow(nodeId, who, index, 'ghiChu', 'Ghi chú', p.ghiChu) +
       '</div>';
     return h;
@@ -210,9 +219,10 @@ GP.editor = (function () {
           try { t.setSelectionRange(pos, pos); } catch (err) { }
         }
       }
+      var val = so ? parseSo(t.value)
+        : (field === 'namMat' ? giaTriNamMat(t.value) : t.value);
       dangGo = true;
-      GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index,
-        field, so ? parseSo(t.value) : t.value);
+      GP.data.updatePerson(t.dataset.node, t.dataset.who, +t.dataset.index, field, val);
       dangGo = false;
     });
 

@@ -34,9 +34,15 @@ GP.render = (function () {
     return p.join('/');
   }
 
+  /** Năm mất là chữ ("không rõ") thì hiện nguyên chữ; ngày/tháng lúc đó vô nghĩa nên bỏ. */
+  function matText(p) {
+    if (typeof p.namMat === 'string') return p.namMat.trim();
+    return ngayThangNam(p.ngayMat, p.thangMat, p.namMat);
+  }
+
   function lifeHTML(p) {
     var s = ngayThangNam(p.ngaySinh, p.thangSinh, p.namSinh);
-    var m = ngayThangNam(p.ngayMat, p.thangMat, p.namMat);
+    var m = matText(p);
     var out = [];
     if (s) out.push('<span class="nhan-nam">S:</span>' + esc(s));
     if (m) out.push('<span class="nhan-nam">M:</span>' + esc(m));
@@ -45,7 +51,15 @@ GP.render = (function () {
 
   /* ---------- dựng DOM ---------- */
 
-  /* Ba dòng cho mỗi người: họ & tên đệm (đậm, hoa) — tên riêng — năm sinh/mất.
+  function ghiChuHTML(p) {
+    var t = (p.ghiChu || '').trim();
+    if (!t) return '';
+    // CSS cắt ở 2 dòng; title giữ nguyên văn để rê chuột đọc được phần bị cắt
+    return '<div class="dong-ghi-chu" title="' + esc(t) + '">' + esc(t) + '</div>';
+  }
+
+  /* Ba dòng cho mỗi người: họ & tên đệm (đậm, hoa) — tên riêng — năm sinh/mất,
+     thêm dòng ghi chú nếu có.
      Viết hoa bằng CSS chứ không bằng JS, để dữ liệu gốc giữ nguyên cách gõ của người dùng. */
   function personRow(p, label, isBlood) {
     var ho = esc(p.hoDem.trim()), ten = esc(p.ten.trim());
@@ -56,6 +70,7 @@ GP.render = (function () {
       '</div>' +
       '<div class="dong-ten">' + ten + '</div>' +
       '<div class="dong-nam">' + lifeHTML(p) + '</div>' +
+      ghiChuHTML(p) +
       '</div>';
   }
 
