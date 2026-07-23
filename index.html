@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f6f1e7">
 <title>Gia phả dòng họ</title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -11,38 +12,49 @@
 <header id="thanh-cong-cu">
   <input id="ten-dong-ho" class="ten-ho" type="text" placeholder="Tên dòng họ" aria-label="Tên dòng họ">
 
-  <div class="nhom">
-    <div class="o-tim-bao">
-      <input id="o-tim" type="search" placeholder="Tìm tên…  ( / )" aria-label="Tìm tên">
-      <span id="so-khop"></span>
+  <div class="nhom" id="nhom-vua">
+    <button id="vua-man-hinh" title="Xem vừa màn hình">Vừa khung</button>
+  </div>
+
+  <button id="nut-menu" aria-label="Thêm chức năng" aria-expanded="false">⋯</button>
+
+  <!-- Trên máy tính: display:contents nên các nhóm nằm thẳng trên thanh công cụ.
+       Trên điện thoại: gói lại thành bảng thả xuống. -->
+  <div id="menu">
+    <div class="nhom" id="nhom-tim">
+      <div class="o-tim-bao">
+        <input id="o-tim" type="search" placeholder="Tìm tên…  ( / )" aria-label="Tìm tên">
+        <span id="so-khop"></span>
+      </div>
+      <button id="khop-truoc" title="Kết quả trước (Shift+Enter)">↑</button>
+      <button id="khop-sau" title="Kết quả sau (Enter)">↓</button>
     </div>
-    <button id="khop-truoc" title="Kết quả trước (Shift+Enter)">↑</button>
-    <button id="khop-sau" title="Kết quả sau (Enter)">↓</button>
-  </div>
 
-  <div class="nhom">
-    <button id="thu-nho" title="Thu nhỏ">−</button>
-    <span id="muc-phong">100%</span>
-    <button id="phong-to" title="Phóng to">+</button>
-    <button id="vua-man-hinh" title="Vừa màn hình">Vừa khung</button>
-  </div>
+    <div class="nhom" id="nhom-zoom">
+      <button id="thu-nho" title="Thu nhỏ">−</button>
+      <span id="muc-phong">100%</span>
+      <button id="phong-to" title="Phóng to">+</button>
+    </div>
 
-  <div class="nhom">
-    <button id="gap-tat-ca" title="Thu gọn mọi nhánh">Gấp hết</button>
-    <button id="mo-tat-ca" title="Mở mọi nhánh">Mở hết</button>
-  </div>
+    <div class="nhom" id="nhom-gap">
+      <button id="gap-tat-ca" title="Thu gọn mọi nhánh">Gấp hết</button>
+      <button id="mo-tat-ca" title="Mở mọi nhánh">Mở hết</button>
+    </div>
 
-  <div class="nhom">
-    <button id="hoan-tac" title="Hoàn tác (Ctrl+Z)">↶</button>
-    <button id="lam-lai" title="Làm lại (Ctrl+Shift+Z)">↷</button>
-  </div>
+    <div class="nhom" id="nhom-hoan-tac">
+      <button id="hoan-tac" title="Hoàn tác (Ctrl+Z)">↶</button>
+      <button id="lam-lai" title="Làm lại (Ctrl+Shift+Z)">↷</button>
+    </div>
 
-  <div class="nhom cuoi">
-    <button id="nhap">Nhập tệp</button>
-    <button id="xuat" class="chinh">Xuất tệp</button>
-    <button id="in">In</button>
-    <button id="tao-moi" class="nguy" title="Xoá hết và bắt đầu lại">Tạo mới</button>
-    <input id="chon-tep" type="file" accept=".json,application/json" hidden>
+    <div class="nhom cuoi" id="nhom-tep">
+      <button id="nhap" title="Mở tệp gia phả .json">Nhập tệp</button>
+      <button id="xuat" class="chinh" title="Lưu dữ liệu ra tệp .json để giữ bản sao">Xuất tệp</button>
+      <button id="xuat-anh" title="Xuất cây thành ảnh JPEG để chia sẻ">Ảnh JPEG</button>
+      <button id="xuat-pdf" title="Xuất cây thành tệp PDF để chia sẻ hoặc in">PDF</button>
+      <button id="in" title="In ra giấy">In</button>
+      <button id="tao-moi" class="nguy" title="Xoá hết và bắt đầu lại">Tạo mới</button>
+      <input id="chon-tep" type="file" accept=".json,application/json" hidden>
+    </div>
   </div>
 </header>
 
@@ -67,9 +79,13 @@
   <span class="meo">Kéo nền để di chuyển · lăn chuột để phóng to · bấm vào ô để sửa · dữ liệu tự lưu trong trình duyệt</span>
 </footer>
 
+<div id="dang-lam" hidden><span></span></div>
+
+<script src="nguoi.js"></script>
 <script src="data.js"></script>
 <script src="layout.js"></script>
 <script src="render.js"></script>
+<script src="xuat-anh.js"></script>
 <script src="editor.js"></script>
 <script src="app.js"></script>
 </body>

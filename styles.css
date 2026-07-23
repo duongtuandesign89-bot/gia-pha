@@ -293,11 +293,102 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 #thanh-duoi .meo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-@media (max-width: 900px) {
+/* ---------- báo đang xuất ảnh ---------- */
+
+#dang-lam {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(246, 241, 231, .78); backdrop-filter: blur(3px);
+}
+#dang-lam[hidden] { display: none; }
+#dang-lam span {
+  background: var(--o-nen); border: 1px solid var(--vien); border-radius: 10px;
+  padding: 16px 24px; box-shadow: var(--bong); font-size: 14px;
+}
+
+/* ---------- nút ⋯ và bảng thả xuống ---------- */
+
+/* Trên máy tính không có nút menu, các nhóm nằm thẳng hàng trên thanh công cụ. */
+#nut-menu { display: none; }
+#menu { display: contents; }
+
+/* ---------- điện thoại & máy tính bảng ---------- */
+
+@media (max-width: 860px) {
+  :root { --cao-thanh: 52px; --rong-bang: 100vw; }
+
   #thanh-duoi .meo { display: none; }
-  :root { --rong-bang: 100vw; }
-  .ten-ho { width: 130px; }
-  #o-tim { width: 130px; }
+
+  #thanh-cong-cu { gap: 6px; padding: 0 8px; }
+  .ten-ho { flex: 1; width: auto; min-width: 0; font-size: 15px; }
+
+  #nut-menu {
+    display: block; flex: none;
+    border: 1px solid var(--vien); background: #fff; border-radius: 6px;
+    padding: 5px 12px; line-height: 1.2; font-size: 17px;
+  }
+  #nut-menu:hover { background: var(--giay-dam); }
+
+  /* Bảng thả xuống: các nhóm xếp dọc, mỗi nhóm một hàng. */
+  #menu {
+    display: none;
+    position: fixed; top: var(--cao-thanh); left: 0; right: 0;
+    max-height: calc(100vh - var(--cao-thanh)); overflow-y: auto;
+    background: var(--o-nen); border-bottom: 1px solid var(--vien);
+    box-shadow: 0 12px 28px rgba(60, 48, 30, .16);
+    padding: 10px; z-index: 40;
+  }
+  body.menu-mo #menu { display: block; }
+
+  #thanh-cong-cu .nhom {
+    border-left: none; padding-left: 0; height: auto;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding-bottom: 10px; margin-bottom: 10px;
+    border-bottom: 1px solid var(--vien);
+  }
+  #thanh-cong-cu .nhom:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  #thanh-cong-cu .nhom.cuoi { margin-left: 0; }
+
+  /* nhóm "Vừa khung" vẫn nằm ngoài menu nên phải giữ dáng cũ */
+  #nhom-vua {
+    border-bottom: none !important; padding-bottom: 0 !important;
+    margin-bottom: 0 !important; flex: none;
+  }
+
+  #thanh-cong-cu #menu button { padding: 9px 14px; font-size: 14px; }
+  #o-tim { width: auto; flex: 1; min-width: 160px; padding: 9px 68px 9px 12px; }
+  .o-tim-bao { flex: 1; min-width: 0; }
+  #nhom-tep { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #nhom-tep button { width: 100%; }
+
+  /* Bảng sửa kéo lên từ đáy chứ không trượt ngang: ngón tay với tới dễ hơn,
+     và vẫn nhìn thấy phần cây phía trên. */
+  #bang-sua {
+    top: auto; left: 0; right: 0; bottom: 0; width: 100vw;
+    height: 78vh; max-height: 78vh;
+    border-left: none; border-top: 1px solid var(--vien);
+    border-radius: 14px 14px 0 0;
+    transform: translateY(100%);
+    box-shadow: 0 -10px 30px rgba(60, 48, 30, .18);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #bang-sua.mo { transform: none; }
+  .bang-dau { padding: 14px; }
+  #dong-bang-sua { font-size: 20px; padding: 4px 10px; }
+
+  /* ngón tay to hơn con trỏ chuột */
+  .o-nhap input, #bang-sua select { padding: 10px 11px; font-size: 16px; }
+  .dieu-khien button { width: 34px; height: 34px; }
+  .ten-con { padding: 7px 5px; }
+  .nut-chinh, .nut-phu { padding: 11px 10px; }
+  .box .nut-gap { min-width: 34px; height: 26px; bottom: -14px; font-size: 12px; }
+  .box .nut-them { opacity: 1; padding: 5px 11px; bottom: -13px; }
+}
+
+@media (max-width: 420px) {
+  .ten-ho { font-size: 14px; }
+  #vua-man-hinh { padding: 5px 8px; font-size: 13px; }
+  #nhom-tep { grid-template-columns: 1fr; }
 }
 
 /* ---------- in ra giấy ---------- */

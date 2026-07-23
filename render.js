@@ -22,27 +22,9 @@ GP.render = (function () {
     });
   }
 
-  function hai(v) { return (v < 10 ? '0' : '') + v; }
-
-  /** "12/05/1890" nếu đủ, "05/1890" nếu thiếu ngày, "1890" nếu chỉ có năm.
-      Ngày mà không có tháng thì bỏ ngày — "12//1890" vô nghĩa. */
-  function ngayThangNam(ngay, thang, nam) {
-    var p = [];
-    if (ngay && thang) p.push(hai(ngay));
-    if (thang) p.push(hai(thang));
-    if (nam) p.push(nam);
-    return p.join('/');
-  }
-
-  /** Năm mất là chữ ("không rõ") thì hiện nguyên chữ; ngày/tháng lúc đó vô nghĩa nên bỏ. */
-  function matText(p) {
-    if (typeof p.namMat === 'string') return p.namMat.trim();
-    return ngayThangNam(p.ngayMat, p.thangMat, p.namMat);
-  }
-
   function lifeHTML(p) {
-    var s = ngayThangNam(p.ngaySinh, p.thangSinh, p.namSinh);
-    var m = matText(p);
+    var s = GP.nguoi.sinh(p);
+    var m = GP.nguoi.mat(p);
     var out = [];
     if (s) out.push('<span class="nhan-nam">S:</span>' + esc(s));
     if (m) out.push('<span class="nhan-nam">M:</span>' + esc(m));
@@ -52,7 +34,7 @@ GP.render = (function () {
   /* ---------- dựng DOM ---------- */
 
   function ghiChuHTML(p) {
-    var t = (p.ghiChu || '').trim();
+    var t = GP.nguoi.ghiChu(p);
     if (!t) return '';
     // CSS cắt ở 2 dòng; title giữ nguyên văn để rê chuột đọc được phần bị cắt
     return '<div class="dong-ghi-chu" title="' + esc(t) + '">' + esc(t) + '</div>';
@@ -62,8 +44,8 @@ GP.render = (function () {
      thêm dòng ghi chú nếu có.
      Viết hoa bằng CSS chứ không bằng JS, để dữ liệu gốc giữ nguyên cách gõ của người dùng. */
   function personRow(p, label, isBlood) {
-    var ho = esc(p.hoDem.trim()), ten = esc(p.ten.trim());
-    var chuaNhap = !ho && !ten;
+    var ho = esc(GP.nguoi.ho(p)), ten = esc(GP.nguoi.ten(p));
+    var chuaNhap = !GP.nguoi.coTen(p);
     return '<div class="person' + (isBlood ? ' huyet-thong' : '') + '">' +
       '<div class="dong-ho"><span class="nhan">' + label + '</span>' +
       (chuaNhap ? '<span class="trong">chưa nhập</span>' : '<b>' + ho + '</b>') +
@@ -282,7 +264,6 @@ GP.render = (function () {
     fit: fit,
     zoomBy: zoomBy,
     centerOn: centerOn,
-    ngayThangNam: ngayThangNam,
     getScale: function () { return view.scale; },
     setSelected: function (id) { selectedId = id; },
     setMatches: function (ids) {

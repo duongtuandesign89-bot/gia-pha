@@ -1,0 +1,53 @@
+/* nguoi.js — chữ hiển thị của một người, tính từ dữ liệu thô.
+   Dùng chung cho bản vẽ HTML (render.js) và bản vẽ ảnh (xuat-anh.js).
+   Hai nơi đó vẽ khác nhau nhưng phải ra đúng cùng một nội dung chữ. */
+window.GP = window.GP || {};
+
+GP.nguoi = (function () {
+  'use strict';
+
+  function hai(v) { return (v < 10 ? '0' : '') + v; }
+
+  /** "12/05/1890" nếu đủ, "05/1890" nếu thiếu ngày, "1890" nếu chỉ có năm.
+      Ngày mà không có tháng thì bỏ ngày — "12//1890" vô nghĩa. */
+  function ngayThangNam(ngay, thang, nam) {
+    var p = [];
+    if (ngay && thang) p.push(hai(ngay));
+    if (thang) p.push(hai(thang));
+    if (nam) p.push(nam);
+    return p.join('/');
+  }
+
+  function ho(p) { return String(p && p.hoDem || '').trim(); }
+  function ten(p) { return String(p && p.ten || '').trim(); }
+  function ghiChu(p) { return String(p && p.ghiChu || '').trim(); }
+  function coTen(p) { return !!(ho(p) || ten(p)); }
+
+  function sinh(p) { return ngayThangNam(p.ngaySinh, p.thangSinh, p.namSinh); }
+
+  /** Năm mất là chữ ("không rõ") thì trả nguyên chữ; ngày/tháng lúc đó vô nghĩa nên bỏ. */
+  function mat(p) {
+    if (typeof p.namMat === 'string') return p.namMat.trim();
+    return ngayThangNam(p.ngayMat, p.thangMat, p.namMat);
+  }
+
+  /** Bỏ dấu để tìm "an" ra "Ân", "duc" ra "Đức". Chữ đ không tách được bằng NFD nên xử riêng. */
+  function boDau(s) {
+    return String(s == null ? '' : s)
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+      .toLowerCase().trim();
+  }
+
+  /** Tên dòng họ -> chuỗi đặt tên tệp được: "Gia phả họ Nguyễn" -> "gia-pha-ho-nguyen". */
+  function slug(s) {
+    return boDau(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'gia-pha';
+  }
+
+  return {
+    ngayThangNam: ngayThangNam,
+    ho: ho, ten: ten, ghiChu: ghiChu, coTen: coTen,
+    sinh: sinh, mat: mat,
+    boDau: boDau, slug: slug
+  };
+})();

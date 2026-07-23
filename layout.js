@@ -137,7 +137,9 @@ GP.layout = (function () {
 
   return {
     compute: compute,
+    nodeHeight: nodeHeight,
+    ghiChuHeight: ghiChuHeight,
     NODE_W: NODE_W, H_GAP: H_GAP, V_GAP: V_GAP,
-    HEADER: HEADER, PERSON: PERSON
+    HEADER: HEADER, PERSON: PERSON, GHI_CHU: GHI_CHU, PAD: PAD
   };
 })();

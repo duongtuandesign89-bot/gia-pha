@@ -12,13 +12,7 @@ window.GP = window.GP || {};
 
   function $(id) { return document.getElementById(id); }
 
-  /** Bỏ dấu để tìm "an" ra "Ân", "duc" ra "Đức". */
-  function boDau(s) {
-    return String(s || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-      .toLowerCase().trim();
-  }
+  var boDau = GP.nguoi.boDau;
 
   function taiVe(ten, noiDung) {
     var blob = new Blob([noiDung], { type: 'application/json;charset=utf-8' });
@@ -92,7 +86,7 @@ window.GP = window.GP || {};
 
   function xuatFile() {
     var state = GP.data.get();
-    var ten = boDau(state.tenDongHo).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'gia-pha';
+    var ten = GP.nguoi.slug(state.tenDongHo);
     var ngay = new Date().toISOString().slice(0, 10);
     taiVe(ten + '-' + ngay + '.json', GP.data.toJSON());
   }
@@ -119,6 +113,37 @@ window.GP = window.GP || {};
     };
     reader.onerror = function () { alert('Không đọc được tệp.'); };
     reader.readAsText(file);
+  }
+
+  /* ---------- xuất ảnh / PDF ---------- */
+
+  function dongMenu() {
+    document.body.classList.remove('menu-mo');
+    $('nut-menu').setAttribute('aria-expanded', 'false');
+  }
+
+  /* Vẽ ảnh mất một lúc với cây lớn, mà canvas chạy đồng bộ nên màn hình sẽ đứng.
+     Hiện lời báo trước, đợi trình duyệt vẽ xong lời báo rồi mới bắt đầu. */
+  function xuatHinh(kieu) {
+    dongMenu();
+    var bao = $('dang-lam');
+    bao.firstElementChild.textContent = 'Đang tạo ' + (kieu === 'pdf' ? 'PDF' : 'ảnh') + '…';
+    bao.hidden = false;
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        function xong(loi) {
+          bao.hidden = true;
+          if (loi) alert(loi);
+        }
+        try {
+          if (kieu === 'pdf') GP.xuatAnh.xuatPDF(xong);
+          else GP.xuatAnh.xuatJPEG(xong);
+        } catch (e) {
+          xong('Không xuất được: ' + e.message);
+        }
+      });
+    });
   }
 
   /* ---------- in ra giấy ---------- */
@@ -193,6 +218,21 @@ window.GP = window.GP || {};
       e.target.value = '';
     });
     $('in').addEventListener('click', function () { window.print(); });
+    $('xuat-anh').addEventListener('click', function () { xuatHinh('jpeg'); });
+    $('xuat-pdf').addEventListener('click', function () { xuatHinh('pdf'); });
+
+    // nút ⋯ trên điện thoại
+    var nutMenu = $('nut-menu');
+    nutMenu.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var mo = document.body.classList.toggle('menu-mo');
+      nutMenu.setAttribute('aria-expanded', mo ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (e) {
+      if (!document.body.classList.contains('menu-mo')) return;
+      if ($('menu').contains(e.target)) return;   // bấm trong menu thì để nguyên
+      dongMenu();
+    });
     $('tao-moi').addEventListener('click', function () {
       if (!confirm('Xoá toàn bộ gia phả hiện tại và bắt đầu lại từ ô trống?\n' +
         'Nên bấm "Xuất tệp" để giữ bản sao trước khi làm việc này.')) return;
@@ -211,7 +251,7 @@ window.GP = window.GP || {};
         if (e.shiftKey) GP.data.redo(); else GP.data.undo();
         return;
       }
-      if (e.key === 'Escape') { select(null); return; }
+      if (e.key === 'Escape') { dongMenu(); select(null); return; }
       if (!trongONhap && e.key === '/') { e.preventDefault(); oTim.focus(); }
     });
 
