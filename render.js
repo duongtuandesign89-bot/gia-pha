@@ -7,7 +7,7 @@ GP.render = (function () {
 
   var MIN_SCALE = 0.12, MAX_SCALE = 2.5;
 
-  var viewport, canvas, svg, boxLayer;
+  var viewport, canvas, svg, boxLayer, listEl;
   var view = { tx: 40, ty: 40, scale: 1 };
   var lastLayout = null;
   var selectedId = null;
@@ -100,24 +100,78 @@ GP.render = (function () {
 
   function round(v) { return Math.round(v * 10) / 10; }
 
-  /* Chế độ tiêu điểm: chỉ vẽ một cửa sổ ba đời — cha của người đang chọn ở trên,
-     người đó cùng các anh em ở giữa, các con ở dưới. Mật độ trên màn hình luôn cố định
-     dù dòng họ đông tới đâu. Bấm sang ô nào thì ô đó thành tiêu điểm mới. */
-  function focusOpts(state) {
-    if (!focusMode || !focusId || !state.nodes[focusId]) return null;
+  /* ---------- chế độ tiêu điểm: danh sách dọc ----------
+     Trên điện thoại, xếp cây theo hàng ngang là không đọc nổi khi một đời đông con.
+     Chế độ tiêu điểm bỏ hẳn khung kéo/phóng, thay bằng một danh sách dọc cuộn tự nhiên:
+     cha ở trên (bấm để lên), ô đang xem (đầy đủ chi tiết), rồi các con xếp dọc — bấm một
+     người con là đi vào nhánh đó. Chỉ hiện đúng nhánh đang xem. */
+
+  function tenChinh(n) {
+    var p = n.doiTruyen === 'vo' ? n.vo[0] : n.chong;
+    return GP.data.fullName(p) || 'chưa đặt tên';
+  }
+
+  function cardRows(n) {
+    var rows = personRow(n.chong, 'Ông:', n.doiTruyen === 'chong');
+    n.vo.forEach(function (v, i) {
+      rows += personRow(v, n.vo.length > 1 ? 'Bà ' + (i + 1) + ':' : 'Bà:', n.doiTruyen === 'vo' && i === 0);
+    });
+    return rows;
+  }
+
+  /* Một thẻ trong danh sách dọc, dùng lại đúng các dòng người của bản cây (personRow)
+     nên chữ, màu, dấu âm lịch… giống hệt, không có bộ vẽ thứ ba. */
+  function doiCard(cls, id, dau, nut, duoi) {
+    var n = GP.data.node(id);
+    var depth = GP.data.ancestors(id).length;
+    var kh = matchIds[id] ? ' khop' : '';
+    var navAttr = cls.indexOf('d-con') >= 0 ? ' data-nav="' + id + '" role="button" tabindex="0"' : '';
+    return '<div class="box ' + cls + kh + '"' + navAttr + '>' +
+      '<div class="d-dau"><span class="doi">Đời ' + (depth + 1) + dau + '</span>' + nut + '</div>' +
+      cardRows(n) + (duoi || '') + '</div>';
+  }
+
+  function renderList(state) {
+    var nodes = state.nodes;
+    var f = nodes[focusId];
     var parentId = GP.data.parentMap()[focusId];
-    var effRoot = parentId || focusId;               // ô trên cùng của cửa sổ
-    return {
-      rootId: effRoot,
-      baseDepth: GP.data.ancestors(effRoot).length,  // để nhãn "Đời n" vẫn là đời thật
-      // chỉ mở ô trên cùng (để hiện anh em) và chính tiêu điểm (để hiện con);
-      // mọi ô khác coi như thu gọn nên nhánh sâu không tràn ra
-      collapsed: function (id) { return !(id === effRoot || id === focusId); }
-    };
+    var h = '<div class="dcol">';
+
+    if (parentId) {
+      h += '<div class="d-len" data-nav="' + parentId + '" role="button" tabindex="0">' +
+        '<span class="d-len-mui">↑</span><span>Lên đời trên · ' + esc(tenChinh(nodes[parentId])) + '</span></div>';
+    }
+
+    h += doiCard('la-focus', focusId, ' · đang xem',
+      '<button class="d-sua" data-edit="' + focusId + '">✎ Sửa</button>', '');
+
+    var con = f.con;
+    h += '<div class="d-nhan-con">Các con (' + con.length + ')</div>';
+    if (!con.length) {
+      h += '<div class="d-trong">Chưa có người con nào. Bấm “Thêm con” để thêm.</div>';
+    } else {
+      con.forEach(function (cid) {
+        var soCon = nodes[cid].con.length;
+        var hint = soCon ? soCon + ' con ›' : 'xem ›';
+        h += doiCard('d-con', cid, '', '', '<div class="d-vao">' + hint + '</div>');
+      });
+    }
+    h += '<button class="d-them" data-add="' + focusId + '">＋ Thêm con</button>';
+    h += '</div>';
+    listEl.innerHTML = h;
   }
 
   function draw(state) {
-    var L = GP.layout.compute(state, focusOpts(state));
+    if (focusMode && focusId && state.nodes[focusId]) {
+      renderList(state);
+      listEl.hidden = false;
+      canvas.style.display = 'none';
+      lastLayout = null;
+      return { boxes: [], edges: [], width: 0, height: 0, byId: {} };
+    }
+    canvas.style.display = '';
+    listEl.hidden = true;
+    var L = GP.layout.compute(state);
     lastLayout = L;
 
     var segs = [];
@@ -182,7 +236,10 @@ GP.render = (function () {
     zoomAt(factor, r.left + r.width / 2, r.top + r.height / 2);
   }
 
+  function scrollListTop() { if (listEl) listEl.scrollTop = 0; }
+
   function fit() {
+    if (focusMode) { scrollListTop(); return; }   // chế độ danh sách dùng cuộn thật, không "vừa khung"
     if (!lastLayout) return;
     var r = viewport.getBoundingClientRect();
     var pad = 48;
@@ -211,6 +268,7 @@ GP.render = (function () {
     var dragging = false, sx = 0, sy = 0, stx = 0, sty = 0, moved = false;
 
     viewport.addEventListener('mousedown', function (e) {
+      if (focusMode) return;                // chế độ danh sách: để cuộn tự nhiên
       if (e.button !== 0) return;
       if (e.target.closest('.box')) return; // bấm vào ô thì không kéo
       dragging = true; moved = false;
@@ -234,6 +292,7 @@ GP.render = (function () {
     });
 
     viewport.addEventListener('wheel', function (e) {
+      if (focusMode) return;                // để trang cuộn danh sách bình thường
       e.preventDefault();
       zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
     }, { passive: false });
@@ -241,6 +300,7 @@ GP.render = (function () {
     // cảm ứng: một ngón kéo, hai ngón phóng to
     var touch = null;
     viewport.addEventListener('touchstart', function (e) {
+      if (focusMode) return;                // chế độ danh sách: cuộn cảm ứng tự nhiên
       if (e.touches.length === 1) {
         if (e.target.closest('.box')) return;
         touch = { mode: 'pan', x: e.touches[0].clientX, y: e.touches[0].clientY, tx: view.tx, ty: view.ty };
@@ -250,6 +310,7 @@ GP.render = (function () {
     }, { passive: true });
 
     viewport.addEventListener('touchmove', function (e) {
+      if (focusMode) return;                // đừng preventDefault, để cuộn danh sách chạy
       if (!touch) return;
       if (touch.mode === 'pan' && e.touches.length === 1) {
         view.tx = touch.tx + (e.touches[0].clientX - touch.x);
@@ -292,14 +353,27 @@ GP.render = (function () {
     });
   }
 
+  function initList() {
+    listEl.addEventListener('click', function (e) {
+      var edit = e.target.closest('[data-edit]');
+      if (edit) { if (on.select) on.select(edit.dataset.edit); return; }
+      var add = e.target.closest('[data-add]');
+      if (add) { if (on.addChild) on.addChild(add.dataset.add); return; }
+      var nav = e.target.closest('[data-nav]');
+      if (nav) { if (on.focusNav) on.focusNav(nav.dataset.nav); return; }
+    });
+  }
+
   function init(opts) {
     viewport = document.getElementById('viewport');
     canvas = document.getElementById('canvas');
     svg = document.getElementById('lines');
     boxLayer = document.getElementById('boxes');
+    listEl = document.getElementById('dan-doc');
     on = opts || {};
     initPanZoom();
     initClicks();
+    initList();
     applyView();
   }
 
@@ -313,6 +387,7 @@ GP.render = (function () {
     setSelected: function (id) { selectedId = id; },
     setFocusMode: function (v) { focusMode = !!v; },
     setFocus: function (id) { focusId = id; },
+    scrollListTop: scrollListTop,
     isFocusMode: function () { return focusMode; },
     getFocus: function () { return focusId; },
     setMatches: function (ids) {

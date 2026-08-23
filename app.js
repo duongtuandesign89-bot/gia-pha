@@ -50,7 +50,19 @@ window.GP = window.GP || {};
     btn.setAttribute('aria-pressed', bat ? 'true' : 'false');
     if (bat) GP.render.setFocus(selectedId || GP.data.get().rootId);
     ve();
-    GP.render.fit();
+    GP.render.fit();   // trong chế độ danh sách, fit() chỉ cuộn lên đầu
+  }
+
+  /* Đi tới một người trong danh sách dọc: đổi tiêu điểm, KHÔNG mở bảng sửa
+     (muốn sửa thì bấm nút “Sửa” trên thẻ đang xem). */
+  function diToi(id) {
+    if (!id) return;
+    selectedId = null;
+    GP.render.setSelected(null);
+    GP.editor.close();
+    GP.render.setFocus(id);
+    ve();
+    GP.render.scrollListTop();
   }
 
   /* ---------- vẽ lại ---------- */
@@ -101,9 +113,13 @@ window.GP = window.GP || {};
     matchAt = (matchAt + buoc + matches.length) % matches.length;
     var id = matches[matchAt];
     GP.data.expandTo(id);   // tự bung các nhánh đang gấp phía trên
-    ve();
-    GP.render.centerOn(id);
-    select(id);
+    if (tieuDiem) {
+      diToi(id);            // trong chế độ danh sách: nhảy tiêu điểm tới người tìm được
+    } else {
+      ve();
+      GP.render.centerOn(id);
+      select(id);
+    }
     $('so-khop').textContent = (matchAt + 1) + '/' + matches.length;
   }
 
@@ -200,8 +216,19 @@ window.GP = window.GP || {};
 
     GP.render.init({
       select: select,
+      focusNav: diToi,
       toggle: function (id) { GP.data.toggleCollapse(id); },
-      addChild: function (id) { select(GP.data.addChild(id)); },
+      addChild: function (id) {
+        var newId = GP.data.addChild(id);
+        if (tieuDiem) {
+          // giữ tiêu điểm ở cha, chỉ mở bảng sửa cho người con mới
+          selectedId = newId;
+          GP.render.setSelected(newId);
+          GP.editor.open(newId);
+        } else {
+          select(newId);
+        }
+      },
       zoom: function (s) { $('muc-phong').textContent = Math.round(s * 100) + '%'; }
     });
     GP.editor.init({ select: select });
