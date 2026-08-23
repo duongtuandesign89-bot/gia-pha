@@ -7,6 +7,7 @@ window.GP = window.GP || {};
   var selectedId = null;
   var matches = [];
   var matchAt = -1;
+  var tieuDiem = false;   // chế độ chỉ xem quanh một người
 
   /* ---------- tiện ích ---------- */
 
@@ -32,8 +33,24 @@ window.GP = window.GP || {};
     if (id === selectedId) return;
     selectedId = id;
     GP.render.setSelected(id);
+    // trong chế độ tiêu điểm, chọn ai thì lấy người đó làm tâm cửa sổ
+    if (tieuDiem && id) GP.render.setFocus(id);
     if (id) GP.editor.open(id); else GP.editor.close();
     ve();
+    if (tieuDiem && id) GP.render.fit();   // đóng khung lại quanh tiêu điểm mới
+  }
+
+  /* ---------- chế độ tiêu điểm ---------- */
+
+  function datTieuDiem(bat) {
+    tieuDiem = bat;
+    GP.render.setFocusMode(bat);
+    var btn = $('che-do-tieu-diem');
+    btn.classList.toggle('bat', bat);
+    btn.setAttribute('aria-pressed', bat ? 'true' : 'false');
+    if (bat) GP.render.setFocus(selectedId || GP.data.get().rootId);
+    ve();
+    GP.render.fit();
   }
 
   /* ---------- vẽ lại ---------- */
@@ -48,8 +65,16 @@ window.GP = window.GP || {};
     var soO = Object.keys(state.nodes).length;
     var soNguoi = GP.data.countPeople();
     var soDoi = L.boxes.reduce(function (m, b) { return Math.max(m, b.depth + 1); }, 0);
-    $('trang-thai').textContent =
-      soNguoi + ' người · ' + soO + ' ô · ' + soDoi + ' đời đang hiện';
+    var s = soNguoi + ' người · ' + soO + ' ô';
+    if (tieuDiem) {
+      var f = GP.render.getFocus();
+      var n = f && GP.data.node(f);
+      var ten = n ? (GP.data.fullName(n.doiTruyen === 'vo' ? n.vo[0] : n.chong) || 'chưa đặt tên') : '';
+      s += ' · đang xem quanh: ' + ten;
+    } else {
+      s += ' · ' + soDoi + ' đời đang hiện';
+    }
+    $('trang-thai').textContent = s;
   }
 
   /* ---------- tìm kiếm ---------- */
@@ -157,6 +182,9 @@ window.GP = window.GP || {};
     canvas.dataset.transformCu = canvas.style.transform;
     canvas.style.transform = 'scale(' + s + ')';
     canvas.style.transformOrigin = 'top left';
+    // in thì luôn hiện đủ chi tiết, bỏ mức thu gọn của semantic zoom
+    canvas.classList.remove('zoom-xa', 'zoom-vua');
+    canvas.style.setProperty('--s', 1);
     $('tieu-de-in').textContent = GP.data.get().tenDongHo;
   }
 
@@ -201,6 +229,7 @@ window.GP = window.GP || {};
     $('phong-to').addEventListener('click', function () { GP.render.zoomBy(1.2); });
     $('thu-nho').addEventListener('click', function () { GP.render.zoomBy(1 / 1.2); });
     $('vua-man-hinh').addEventListener('click', function () { GP.render.fit(); });
+    $('che-do-tieu-diem').addEventListener('click', function () { datTieuDiem(!tieuDiem); });
 
     // gấp / mở
     $('gap-tat-ca').addEventListener('click', function () { GP.data.setAllCollapsed(true); GP.render.fit(); });

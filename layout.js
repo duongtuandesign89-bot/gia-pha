@@ -56,27 +56,42 @@ GP.layout = (function () {
    *   boxes: {id, node, depth, x, y, w, h} — x,y là góc trên bên trái
    *   edges: {parent, children, busY} — một cụm đường nối từ cha xuống các con
    */
-  function compute(state) {
+  /**
+   * @param opts (tuỳ chọn)
+   *   rootId    — vẽ bắt đầu từ ô này thay vì ô gốc (dùng cho chế độ tiêu điểm)
+   *   baseDepth — số đời của ô bắt đầu, để nhãn "Đời n" vẫn đúng đời thật
+   *   collapsed — hàm (id, node) -> bool, quyết định ô nào coi như thu gọn.
+   *               Mặc định theo cờ n.thuGon của dữ liệu.
+   */
+  function compute(state, opts) {
+    opts = opts || {};
     var nodes = state.nodes;
+    var startId = opts.rootId || state.rootId;
+    var baseDepth = opts.baseDepth || 0;
+    var isCol = opts.collapsed || function (id, n) { return n.thuGon; };
+    function col(id) { return isCol(id, nodes[id]); }
+
     var rec = {};      // id -> bản ghi bố cục
     var order = [];
 
-    // 1. đi qua các ô đang hiện (nhánh thu gọn thì dừng lại) để lấy đời + chiều cao
-    (function walk(id, depth) {
+    // 1. đi qua các ô đang hiện (nhánh thu gọn thì dừng lại) để lấy đời + chiều cao.
+    //    `level` là bậc so với ô trên cùng đang vẽ; `depth` là đời thật (để hiện nhãn).
+    (function walk(id, level) {
       var n = nodes[id];
       if (!n) return;
-      var r = { id: id, node: n, depth: depth, h: nodeHeight(n), w: NODE_W };
+      var isC = col(id);   // ô này có bị thu gọn trong khung nhìn hiện tại không
+      var r = { id: id, node: n, level: level, depth: baseDepth + level, h: nodeHeight(n), w: NODE_W, collapsed: isC };
       rec[id] = r;
       order.push(r);
-      if (!n.thuGon) {
-        for (var i = 0; i < n.con.length; i++) walk(n.con[i], depth + 1);
+      if (!isC) {
+        for (var i = 0; i < n.con.length; i++) walk(n.con[i], level + 1);
       }
-    })(state.rootId, 0);
+    })(startId, 0);
 
     // 2. mỗi đời cao bằng ô cao nhất của đời đó, nhờ vậy các đời thẳng hàng
     var rowH = [];
     order.forEach(function (r) {
-      rowH[r.depth] = Math.max(rowH[r.depth] || 0, r.h);
+      rowH[r.level] = Math.max(rowH[r.level] || 0, r.h);
     });
     var rowY = [], acc = 0;
     for (var d = 0; d < rowH.length; d++) {
@@ -87,7 +102,7 @@ GP.layout = (function () {
     // 3. bề ngang mà cả nhánh chiếm chỗ
     function subtreeWidth(id) {
       var n = nodes[id], r = rec[id];
-      if (n.thuGon || !n.con.length) {
+      if (col(id) || !n.con.length) {
         r.sw = NODE_W;
         r.childSpan = 0;
         return r.sw;
@@ -101,12 +116,12 @@ GP.layout = (function () {
       r.sw = Math.max(NODE_W, total);
       return r.sw;
     }
-    subtreeWidth(state.rootId);
+    subtreeWidth(startId);
 
     // 4. rải theo chiều ngang: cha nằm giữa hàng con
     function place(id, left) {
       var n = nodes[id], r = rec[id];
-      if (n.thuGon || !n.con.length) {
+      if (col(id) || !n.con.length) {
         r.cx = left + NODE_W / 2;
       } else {
         // nhánh hẹp hơn chính ô cha thì đẩy các con vào giữa
@@ -120,9 +135,9 @@ GP.layout = (function () {
         r.cx = (first + last) / 2;
       }
       r.x = r.cx - NODE_W / 2;
-      r.y = rowY[r.depth];
+      r.y = rowY[r.level];
     }
-    place(state.rootId, 0);
+    place(startId, 0);
 
     // 5. dồn về gốc toạ độ 0,0
     var minX = Infinity, maxX = -Infinity, maxY = 0;
@@ -138,7 +153,7 @@ GP.layout = (function () {
     var edges = [];
     order.forEach(function (r) {
       var n = r.node;
-      if (n.thuGon || !n.con.length) return;
+      if (col(r.id) || !n.con.length) return;
       var kids = n.con.map(function (cid) { return rec[cid]; }).filter(Boolean);
       if (!kids.length) return;
       edges.push({ parent: r, children: kids, busY: r.y + r.h + V_GAP / 2 });

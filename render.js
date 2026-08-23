@@ -12,6 +12,8 @@ GP.render = (function () {
   var lastLayout = null;
   var selectedId = null;
   var matchIds = {};
+  var focusMode = false;   // chỉ xem cửa sổ 3 đời quanh một người
+  var focusId = null;      // người đang làm tiêu điểm
   var on = {};
 
   /* ---------- chữ hiển thị ---------- */
@@ -78,10 +80,13 @@ GP.render = (function () {
 
     var toggle = '';
     if (n.con.length) {
+      // dùng trạng thái thu gọn của KHUNG NHÌN (b.collapsed), không phải cờ dữ liệu:
+      // trong chế độ tiêu điểm nhiều ô bị gấp mà cờ n.thuGon vẫn false
+      var dangGap = b.collapsed;
       var hidden = GP.data.branchSize(n.id) - 1;
-      toggle = '<button class="nut-gap" data-act="toggle" title="' +
-        (n.thuGon ? 'Mở nhánh' : 'Thu gọn nhánh') + '">' +
-        (n.thuGon ? '+' + hidden : '−') + '</button>';
+      var title = dangGap ? (focusMode ? 'Xem nhánh này' : 'Mở nhánh') : 'Thu gọn nhánh';
+      toggle = '<button class="nut-gap" data-act="toggle" title="' + title + '">' +
+        (dangGap ? '+' + hidden : '−') + '</button>';
     }
 
     return '<div class="' + cls.join(' ') + '" data-id="' + n.id + '" style="left:' +
@@ -95,8 +100,24 @@ GP.render = (function () {
 
   function round(v) { return Math.round(v * 10) / 10; }
 
+  /* Chế độ tiêu điểm: chỉ vẽ một cửa sổ ba đời — cha của người đang chọn ở trên,
+     người đó cùng các anh em ở giữa, các con ở dưới. Mật độ trên màn hình luôn cố định
+     dù dòng họ đông tới đâu. Bấm sang ô nào thì ô đó thành tiêu điểm mới. */
+  function focusOpts(state) {
+    if (!focusMode || !focusId || !state.nodes[focusId]) return null;
+    var parentId = GP.data.parentMap()[focusId];
+    var effRoot = parentId || focusId;               // ô trên cùng của cửa sổ
+    return {
+      rootId: effRoot,
+      baseDepth: GP.data.ancestors(effRoot).length,  // để nhãn "Đời n" vẫn là đời thật
+      // chỉ mở ô trên cùng (để hiện anh em) và chính tiêu điểm (để hiện con);
+      // mọi ô khác coi như thu gọn nên nhánh sâu không tràn ra
+      collapsed: function (id) { return !(id === effRoot || id === focusId); }
+    };
+  }
+
   function draw(state) {
-    var L = GP.layout.compute(state);
+    var L = GP.layout.compute(state, focusOpts(state));
     lastLayout = L;
 
     var segs = [];
@@ -126,8 +147,19 @@ GP.render = (function () {
 
   /* ---------- kéo, phóng to ---------- */
 
+  /* Semantic zoom: càng thu nhỏ càng bớt chi tiết để tên vẫn đọc được, không phải
+     zoom ra zoom vào liên tục. Ngưỡng chọn theo mức chữ bắt đầu khó đọc.
+     --s để CSS phóng ngược cỡ chữ tên, giữ nó gần như cố định trên màn hình. */
+  function capNhatMatDo() {
+    var s = view.scale;
+    canvas.style.setProperty('--s', s);
+    canvas.classList.toggle('zoom-xa', s < 0.45);
+    canvas.classList.toggle('zoom-vua', s >= 0.45 && s < 0.8);
+  }
+
   function applyView() {
     canvas.style.transform = 'translate(' + view.tx + 'px,' + view.ty + 'px) scale(' + view.scale + ')';
+    capNhatMatDo();
     if (on.zoom) on.zoom(view.scale);
   }
 
@@ -249,7 +281,12 @@ GP.render = (function () {
       if (!box) return;
       var id = box.dataset.id;
       var act = e.target.closest('[data-act]');
-      if (act && act.dataset.act === 'toggle') { if (on.toggle) on.toggle(id); return; }
+      if (act && act.dataset.act === 'toggle') {
+        // trong chế độ tiêu điểm, cái nút +N là để đi tới nhánh đó, không phải gấp/mở
+        if (focusMode) { if (on.select) on.select(id); return; }
+        if (on.toggle) on.toggle(id);
+        return;
+      }
       if (act && act.dataset.act === 'add') { if (on.addChild) on.addChild(id); return; }
       if (on.select) on.select(id);
     });
@@ -274,6 +311,10 @@ GP.render = (function () {
     centerOn: centerOn,
     getScale: function () { return view.scale; },
     setSelected: function (id) { selectedId = id; },
+    setFocusMode: function (v) { focusMode = !!v; },
+    setFocus: function (id) { focusId = id; },
+    isFocusMode: function () { return focusMode; },
+    getFocus: function () { return focusId; },
     setMatches: function (ids) {
       matchIds = {};
       (ids || []).forEach(function (id) { matchIds[id] = true; });
