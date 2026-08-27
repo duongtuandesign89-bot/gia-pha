@@ -12,6 +12,7 @@ GP.layout = (function () {
      sẽ tràn khỏi đáy ô. Đo bằng offsetHeight trên trình duyệt — đừng sửa styles.css
      phần chữ trong ô mà không đo lại. */
   var HEADER = 25;    // dải "Đời n"
+  var ME = 16;        // dòng "mẹ: Bà n" — chỉ có khi ô cha có nhiều bà (khớp .box .me-nhan)
   var PERSON = 65;    // một người: dòng họ (21) + tên riêng (21) + năm (16) + đệm (7)
   var NAM = 16;       // một dòng năm sinh/mất (đã nằm trong PERSON)
   var GHI_CHU = 17;   // mỗi dòng ghi chú
@@ -45,10 +46,16 @@ GP.layout = (function () {
     return PERSON + (namHaiDong(p) ? NAM : 0) + ghiChuHeight(p);
   }
 
-  function nodeHeight(n) {
-    var h = HEADER + PAD + personHeight(n.chong);
+  /** showMe: ô này có hiện dòng "mẹ: Bà n" không (tức ô cha có nhiều bà). */
+  function nodeHeight(n, showMe) {
+    var h = HEADER + (showMe ? ME : 0) + PAD + personHeight(n.chong);
     for (var i = 0; i < n.vo.length; i++) h += personHeight(n.vo[i]);
     return h;
+  }
+
+  /* Tên ngắn của một bà để ghi trong nhãn mẹ: ưu tiên tên riêng, không có thì họ. */
+  function tenNgan(p) {
+    return GP.nguoi.ten(p) || GP.nguoi.ho(p) || '';
   }
 
   /**
@@ -76,17 +83,24 @@ GP.layout = (function () {
 
     // 1. đi qua các ô đang hiện (nhánh thu gọn thì dừng lại) để lấy đời + chiều cao.
     //    `level` là bậc so với ô trên cùng đang vẽ; `depth` là đời thật (để hiện nhãn).
-    (function walk(id, level) {
+    (function walk(id, level, parent) {
       var n = nodes[id];
       if (!n) return;
       var isC = col(id);   // ô này có bị thu gọn trong khung nhìn hiện tại không
-      var r = { id: id, node: n, level: level, depth: baseDepth + level, h: nodeHeight(n), w: NODE_W, collapsed: isC };
+      // ô hiện "mẹ: Bà n" khi ô cha có từ 2 bà trở lên
+      var showMe = !!(parent && parent.vo.length > 1);
+      var meIdx = (parent && typeof n.meIndex === 'number' && n.meIndex >= 0 && n.meIndex < parent.vo.length) ? n.meIndex : 0;
+      var r = {
+        id: id, node: n, level: level, depth: baseDepth + level,
+        h: nodeHeight(n, showMe), w: NODE_W, collapsed: isC,
+        showMe: showMe, meIdx: meIdx, meName: showMe ? tenNgan(parent.vo[meIdx]) : ''
+      };
       rec[id] = r;
       order.push(r);
       if (!isC) {
-        for (var i = 0; i < n.con.length; i++) walk(n.con[i], level + 1);
+        for (var i = 0; i < n.con.length; i++) walk(n.con[i], level + 1, n);
       }
-    })(startId, 0);
+    })(startId, 0, null);
 
     // 2. mỗi đời cao bằng ô cao nhất của đời đó, nhờ vậy các đời thẳng hàng
     var rowH = [];
@@ -175,6 +189,6 @@ GP.layout = (function () {
     ghiChuHeight: ghiChuHeight,
     namHaiDong: namHaiDong,
     NODE_W: NODE_W, H_GAP: H_GAP, V_GAP: V_GAP,
-    HEADER: HEADER, PERSON: PERSON, NAM: NAM, GHI_CHU: GHI_CHU, PAD: PAD
+    HEADER: HEADER, ME: ME, PERSON: PERSON, NAM: NAM, GHI_CHU: GHI_CHU, PAD: PAD
   };
 })();

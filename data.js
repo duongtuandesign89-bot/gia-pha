@@ -354,12 +354,16 @@ GP.data = (function () {
     commit();
   }
 
-  function addChild(parentId) {
+  /** meIndex (tuỳ chọn): người con mới thuộc bà thứ mấy của ô cha. Không truyền thì mặc định
+      bà 1 (index 0). Dùng khi cha có nhiều vợ để thêm con vào đúng đời vợ. */
+  function addChild(parentId, meIndex) {
     mark(null);
     var n = newNode();
+    var p = node(parentId);
+    if (typeof meIndex === 'number' && meIndex >= 0 && meIndex < p.vo.length) n.meIndex = meIndex;
     state.nodes[n.id] = n;
-    node(parentId).con.push(n.id);
-    node(parentId).thuGon = false;
+    p.con.push(n.id);
+    p.thuGon = false;
     commit();
     return n.id;
   }
@@ -382,6 +386,25 @@ GP.data = (function () {
     mark(null);
     var x = con.splice(index, 1)[0];
     con.splice(to, 0, x);
+    commit();
+  }
+
+  /** Xê một người con lên/xuống trong CÙNG một đời vợ (khi cha có nhiều bà). Nhảy qua các
+      con của bà khác để thứ tự trong nhóm đổi mà không xáo trộn con của bà kia. */
+  function moveChildInGroup(parentId, childId, delta) {
+    var con = node(parentId).con;
+    var gi = con.indexOf(childId);
+    if (gi < 0) return;
+    var me = node(childId).meIndex || 0;
+    var step = delta > 0 ? 1 : -1;
+    var target = -1;
+    for (var i = gi + step; i >= 0 && i < con.length; i += step) {
+      if ((node(con[i]).meIndex || 0) === me) { target = i; break; }
+    }
+    if (target < 0) return;
+    mark(null);
+    var x = con.splice(gi, 1)[0];
+    con.splice(target, 0, x);
     commit();
   }
 
@@ -469,7 +492,7 @@ GP.data = (function () {
     setDoiTruyen: setDoiTruyen, setMeIndex: setMeIndex, doiLich: doiLich,
     addSpouse: addSpouse, removeSpouse: removeSpouse,
     addChild: addChild, addParentAboveRoot: addParentAboveRoot,
-    moveChild: moveChild, deleteNode: deleteNode,
+    moveChild: moveChild, moveChildInGroup: moveChildInGroup, deleteNode: deleteNode,
     toggleCollapse: toggleCollapse, setAllCollapsed: setAllCollapsed, expandTo: expandTo,
     undo: undo, redo: redo,
     replaceAll: replaceAll, reset: reset, toJSON: toJSON, validate: validate

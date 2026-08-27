@@ -89,9 +89,13 @@ GP.render = (function () {
         (dangGap ? '+' + hidden : '−') + '</button>';
     }
 
+    var meLine = b.showMe ?
+      '<div class="me-nhan">mẹ: Bà ' + (b.meIdx + 1) + (b.meName ? ' · ' + esc(b.meName) : '') + '</div>' : '';
+
     return '<div class="' + cls.join(' ') + '" data-id="' + n.id + '" style="left:' +
       b.x + 'px;top:' + b.y + 'px;width:' + b.w + 'px;height:' + b.h + 'px">' +
       '<div class="doi">Đời ' + (b.depth + 1) + '</div>' +
+      meLine +
       rows +
       '<button class="nut-them" data-act="add" title="Thêm người con">＋ con</button>' +
       toggle +
@@ -146,17 +150,28 @@ GP.render = (function () {
       '<button class="d-sua" data-edit="' + focusId + '">✎ Sửa</button>', '');
 
     var con = f.con;
-    h += '<div class="d-nhan-con">Các con (' + con.length + ')</div>';
-    if (!con.length) {
-      h += '<div class="d-trong">Chưa có người con nào. Bấm “Thêm con” để thêm.</div>';
-    } else {
-      con.forEach(function (cid) {
-        var soCon = nodes[cid].con.length;
-        var hint = soCon ? soCon + ' con ›' : 'xem ›';
-        h += doiCard('d-con', cid, '', '', '<div class="d-vao">' + hint + '</div>');
-      });
+    function conCard(cid) {
+      var soCon = nodes[cid].con.length;
+      var hint = soCon ? soCon + ' con ›' : 'xem ›';
+      return doiCard('d-con', cid, '', '', '<div class="d-vao">' + hint + '</div>');
     }
-    h += '<button class="d-them" data-add="' + focusId + '">＋ Thêm con</button>';
+
+    if (f.vo.length <= 1) {
+      h += '<div class="d-nhan-con">Các con (' + con.length + ')</div>';
+      if (!con.length) h += '<div class="d-trong">Chưa có người con nào. Bấm “Thêm con” để thêm.</div>';
+      else con.forEach(function (cid) { h += conCard(cid); });
+      h += '<button class="d-them" data-add="' + focusId + '">＋ Thêm con</button>';
+    } else {
+      // cha có nhiều bà: tách các con theo từng đời vợ để thấy rõ con nào của ai
+      for (var m = 0; m < f.vo.length; m++) {
+        var ids = con.filter(function (cid) { return (nodes[cid].meIndex || 0) === m; });
+        var tenBa = GP.data.fullName(f.vo[m]) || 'chưa nhập';
+        h += '<div class="d-nhan-con d-nhan-me">Con của Bà ' + (m + 1) + ' — ' + esc(tenBa) + ' (' + ids.length + ')</div>';
+        if (!ids.length) h += '<div class="d-trong">Chưa có.</div>';
+        else ids.forEach(function (cid) { h += conCard(cid); });
+        h += '<button class="d-them d-them-phu" data-add="' + focusId + '" data-me="' + m + '">＋ Thêm con của Bà ' + (m + 1) + '</button>';
+      }
+    }
     h += '</div>';
     listEl.innerHTML = h;
   }
@@ -358,7 +373,10 @@ GP.render = (function () {
       var edit = e.target.closest('[data-edit]');
       if (edit) { if (on.select) on.select(edit.dataset.edit); return; }
       var add = e.target.closest('[data-add]');
-      if (add) { if (on.addChild) on.addChild(add.dataset.add); return; }
+      if (add) {
+        if (on.addChild) on.addChild(add.dataset.add, add.dataset.me != null ? +add.dataset.me : undefined);
+        return;
+      }
       var nav = e.target.closest('[data-nav]');
       if (nav) { if (on.focusNav) on.focusNav(nav.dataset.nav); return; }
     });

@@ -218,8 +218,8 @@ window.GP = window.GP || {};
       select: select,
       focusNav: diToi,
       toggle: function (id) { GP.data.toggleCollapse(id); },
-      addChild: function (id) {
-        var newId = GP.data.addChild(id);
+      addChild: function (id, me) {
+        var newId = GP.data.addChild(id, me);
         if (tieuDiem) {
           // giữ tiêu điểm ở cha, chỉ mở bảng sửa cho người con mới
           selectedId = newId;

@@ -173,6 +173,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   overflow: hidden;
 }
 
+/* nhãn "mẹ: Bà n" trên ô con khi ô cha có nhiều bà — cao đúng 16px khớp GP.layout.ME */
+.box .me-nhan {
+  font-size: 11px; line-height: 16px; color: var(--vang); font-style: italic;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 .box .nut-gap {
   position: absolute; left: 50%; bottom: -13px; transform: translateX(-50%);
   min-width: 26px; height: 22px; padding: 0 7px;
@@ -206,6 +212,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .zoom-xa .box .dong-nam,
 .zoom-xa .box .dong-ghi-chu,
 .zoom-xa .box .doi,
+.zoom-xa .box .me-nhan,
 .zoom-xa .box .dong-ho { display: none; }
 .zoom-xa .box .person { padding: 1px 0; border-left: none; margin-left: 0; padding-left: 0; }
 .zoom-xa .box .dong-ten {
@@ -276,6 +283,23 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 14px;
 }
 .d-them:hover { background: #443c31; }
+
+/* nhãn nhóm "Con của Bà n" và nút thêm con phụ (mỗi bà một nút) trong danh sách dọc */
+.d-nhan-me { color: var(--vang); }
+.d-them-phu {
+  background: #fff; color: var(--muc); border: 1px solid var(--vien);
+  margin-bottom: 6px;
+}
+.d-them-phu:hover { background: var(--giay-dam); }
+
+/* nhóm con theo mẹ trong bảng sửa */
+.nhom-me { margin-bottom: 12px; }
+.nhan-me {
+  margin: 0 0 8px; font: 600 11px/1.35 sans-serif; letter-spacing: .04em;
+  color: var(--vang); padding-bottom: 5px; border-bottom: 1px dashed var(--vien);
+}
+.nhom-me .ds-con { margin-bottom: 8px; }
+.nhom-me .nut-phu { margin-bottom: 0; }
 
 /* ---------- bảng sửa ---------- */
 

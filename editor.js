@@ -127,22 +127,56 @@ GP.editor = (function () {
         '</select></div>';
     }
 
-    h += '<div class="khoi"><h3>Các con (' + n.con.length + ')</h3>';
-    if (!n.con.length) {
-      h += '<p class="chu-thich">Chưa có người con nào.</p>';
-    } else {
-      h += '<ol class="ds-con">' + n.con.map(function (cid, i) {
-        var c = GP.data.node(cid);
-        var ten = GP.data.fullName(c.doiTruyen === 'vo' ? c.vo[0] : c.chong) || 'chưa nhập';
-        return '<li>' +
-          '<button class="ten-con" data-act="di-toi" data-id="' + cid + '">' + esc(ten) + '</button>' +
-          '<span class="dieu-khien">' +
-          '<button data-act="len" data-index="' + i + '"' + (i === 0 ? ' disabled' : '') + ' title="Lên trên">↑</button>' +
-          '<button data-act="xuong" data-index="' + i + '"' + (i === n.con.length - 1 ? ' disabled' : '') + ' title="Xuống dưới">↓</button>' +
-          '</span></li>';
-      }).join('') + '</ol>';
+    // tên hiển thị của một người con (theo người mang huyết thống của ô đó)
+    function tenCon(cid) {
+      var c = GP.data.node(cid);
+      return GP.data.fullName(c.doiTruyen === 'vo' ? c.vo[0] : c.chong) || 'chưa nhập';
     }
-    h += '<button class="nut-chinh" data-act="them-con">+ Thêm người con</button></div>';
+    // một dòng con, xê lên/xuống bằng cặp nút truyền vào (khác nhau giữa phẳng và theo nhóm)
+    function liCon(cid, lenAttr, xuongAttr) {
+      return '<li>' +
+        '<button class="ten-con" data-act="di-toi" data-id="' + cid + '">' + esc(tenCon(cid)) + '</button>' +
+        '<span class="dieu-khien">' +
+        '<button ' + lenAttr + ' title="Lên trên">↑</button>' +
+        '<button ' + xuongAttr + ' title="Xuống dưới">↓</button>' +
+        '</span></li>';
+    }
+
+    h += '<div class="khoi"><h3>Các con (' + n.con.length + ')</h3>';
+
+    if (n.vo.length <= 1) {
+      // một bà: danh sách phẳng như cũ
+      if (!n.con.length) {
+        h += '<p class="chu-thich">Chưa có người con nào.</p>';
+      } else {
+        h += '<ol class="ds-con">' + n.con.map(function (cid, i) {
+          return liCon(cid,
+            'data-act="len" data-index="' + i + '"' + (i === 0 ? ' disabled' : ''),
+            'data-act="xuong" data-index="' + i + '"' + (i === n.con.length - 1 ? ' disabled' : ''));
+        }).join('') + '</ol>';
+      }
+      h += '<button class="nut-chinh" data-act="them-con">+ Thêm người con</button>';
+    } else {
+      // nhiều bà: tách con theo từng đời vợ, thêm con vào đúng bà, xê thứ tự trong nhóm
+      for (var m = 0; m < n.vo.length; m++) {
+        var ids = n.con.filter(function (cid) { return (GP.data.node(cid).meIndex || 0) === m; });
+        var tenBa = GP.data.fullName(n.vo[m]) || 'chưa nhập';
+        h += '<div class="nhom-me">' +
+          '<h4 class="nhan-me">Con của Bà ' + (m + 1) + ' — ' + esc(tenBa) + ' (' + ids.length + ')</h4>';
+        if (!ids.length) {
+          h += '<p class="chu-thich">Chưa có.</p>';
+        } else {
+          h += '<ol class="ds-con">' + ids.map(function (cid, gi) {
+            return liCon(cid,
+              'data-act="len-nhom" data-id="' + cid + '"' + (gi === 0 ? ' disabled' : ''),
+              'data-act="xuong-nhom" data-id="' + cid + '"' + (gi === ids.length - 1 ? ' disabled' : ''));
+          }).join('') + '</ol>';
+        }
+        h += '<button class="nut-phu" data-act="them-con" data-me="' + m + '">+ Thêm con của Bà ' + (m + 1) + '</button>' +
+          '</div>';
+      }
+    }
+    h += '</div>';
 
     h += '<div class="khoi vung-nguy">';
     if (!parentId) {
@@ -270,7 +304,8 @@ GP.editor = (function () {
       else if (act === 'them-vo') GP.data.addSpouse(currentId);
       else if (act === 'xoa-vo') GP.data.removeSpouse(currentId, +btn.dataset.index);
       else if (act === 'them-con') {
-        var newId = GP.data.addChild(currentId);
+        var me = btn.dataset.me != null ? +btn.dataset.me : undefined;
+        var newId = GP.data.addChild(currentId, me);
         if (on.select) on.select(newId);
       } else if (act === 'them-cha') {
         var pid = GP.data.addParentAboveRoot();
@@ -279,6 +314,8 @@ GP.editor = (function () {
         if (on.select) on.select(btn.dataset.id);
       } else if (act === 'len') GP.data.moveChild(currentId, +btn.dataset.index, -1);
       else if (act === 'xuong') GP.data.moveChild(currentId, +btn.dataset.index, 1);
+      else if (act === 'len-nhom') GP.data.moveChildInGroup(currentId, btn.dataset.id, -1);
+      else if (act === 'xuong-nhom') GP.data.moveChildInGroup(currentId, btn.dataset.id, 1);
       else if (act === 'mo-xoa') { xoaMo = true; refresh(); }
       else if (act === 'huy-xoa') { xoaMo = false; refresh(); }
       else if (act === 'xoa-nhanh' || act === 'xoa-noi') {

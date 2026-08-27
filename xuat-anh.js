@@ -193,6 +193,13 @@ GP.xuatAnh = (function () {
       ctx.fillText('ĐỜI ' + (b.depth + 1), b.x + 13, b.y + 17);
 
       var y = b.y + GP.layout.HEADER;
+      if (b.showMe) {
+        // nhãn "mẹ: Bà n" — khớp dòng .me-nhan bên HTML và chỗ layout đã chừa (GP.layout.ME)
+        ctx.font = 'italic 11px ' + SANS;
+        ctx.fillStyle = MAU.vang;
+        ctx.fillText('mẹ: Bà ' + (b.meIdx + 1) + (b.meName ? ' · ' + b.meName : ''), b.x + 13, y + 11);
+        y += GP.layout.ME;
+      }
       y += veNguoi(ctx, n.chong, b.x, y, b.w, 'Ông:', n.doiTruyen === 'chong');
       n.vo.forEach(function (v, i) {
         var nhan = n.vo.length > 1 ? 'Bà ' + (i + 1) + ':' : 'Bà:';
