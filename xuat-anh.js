@@ -207,6 +207,7 @@ GP.xuatAnh = (function () {
         y += veNguoi(ctx, v, b.x, y, b.w, nhan, n.doiTruyen === 'vo' && i === 0);
       });
     });
+    if (L.veThem) L.veThem(ctx);
   }
 
   function demNguoi(boxes) {
@@ -248,8 +249,17 @@ GP.xuatAnh = (function () {
     var tong = ds.reduce(function (t, r) { return t + r.h + CACH_DOC; }, 0);
     var soCot = Math.max(1, Math.round(Math.sqrt(tong / (1.35 * (rongCot + CACH_COT)))));
     var moiCot = tong / soCot, cot = 0, y = 0, cao = 0, byId = {};
+    var nhanTiep = [], CAO_NHAN = 34;
     ds.forEach(function (r) {
-      if (y > 0 && y + r.h / 2 > moiCot && cot < soCot - 1) { cot++; y = 0; }
+      if (y > 0 && y + r.h / 2 > moiCot && cot < soCot - 1) {
+        cot++; y = 0;
+        // đầu cột mới mà người này là con của một ô ở cột trước: ghi rõ đang tiếp con của ai
+        var p = r.parentId && byId[r.parentId];
+        if (p) {
+          nhanTiep.push({ cot: cot, x: cot * (rongCot + CACH_COT) + p.level * THUT, y: 0, cha: p });
+          y = CAO_NHAN;
+        }
+      }
       r.cot = cot;
       r.x = cot * (rongCot + CACH_COT) + r.level * THUT; r.y = y; r.cx = r.x + r.w / 2;
       y += r.h + CACH_DOC; cao = Math.max(cao, y - CACH_DOC);
@@ -263,8 +273,16 @@ GP.xuatAnh = (function () {
           if (!p) return;
           var xd = p.x + 14, yc = r.y + 22;
           if (p.cot === r.cot) { ctx.moveTo(xd, p.y + p.h); ctx.lineTo(xd, yc); }
-          else { xd = r.x - THUT + 14; ctx.moveTo(xd, Math.max(0, r.y - CACH_DOC)); ctx.lineTo(xd, yc); }
+          else { xd = r.x - THUT + 14; ctx.moveTo(xd, 26); ctx.lineTo(xd, yc); }
           ctx.lineTo(r.x, yc);
+        });
+      },
+      veThem: function (ctx) {
+        nhanTiep.forEach(function (t) {
+          var n = t.cha.node, p = n.doiTruyen === 'vo' ? n.vo[0] : n.chong;
+          ctx.font = 'italic 600 13px ' + SANS; ctx.fillStyle = MAU.vang; ctx.textAlign = 'left';
+          ctx.fillText(catChu(ctx, '↳ tiếp: các con của ' + (n.doiTruyen === 'vo' ? 'bà ' : 'ông ') +
+            (GP.data.fullName(p) || '…'), Ly.NODE_W + 2 * THUT), t.x, 18);
         });
       }
     };
@@ -280,7 +298,38 @@ GP.xuatAnh = (function () {
       GP.layout.compute(state, { rootId: goc, baseDepth: GP.data.ancestors(goc).length, collapsed: isCol });
 
     var rongLogic = L.width + LE * 2;
-    var caoLogic = L.height + LE * 2 + CAO_TIEU_DE;
+
+    /* Tiêu đề và dòng phụ có thể dài hơn cả bề ngang ảnh (ảnh dọc, nhánh nhỏ): tách dòng
+       ở dấu "·", rồi thu cỡ chữ cho vừa. Chiều cao phần đầu tính theo số dòng thật. */
+    var d = new Date();
+    var chuTieuDe = opts.tieuDe || state.tenDongHo || 'Gia phả dòng họ';
+    var chuPhu = (opts.tieuDe ? (state.tenDongHo || '') + ' · ' : '') + (opts.phuDe ? opts.phuDe + ' · ' : '') +
+      demNguoi(L.boxes) + ' người · ' + L.boxes.length + ' ô · xuất ngày ' +
+      d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+    var doRong = document.createElement('canvas').getContext('2d');
+    var rongChu = rongLogic - 2 * 20;
+    function xepDong(chu, coMax, coMin, kieu, font) {
+      var co = coMax, dong;
+      function chia() {
+        doRong.font = kieu + co + 'px ' + font;
+        var manh = chu.split(/\s+·\s+/), ra = [], cur = '';
+        manh.forEach(function (m) {
+          var thu = cur ? cur + ' · ' + m : m;
+          if (!cur || doRong.measureText(thu).width <= rongChu) cur = thu; else { ra.push(cur); cur = m; }
+        });
+        if (cur) ra.push(cur);
+        return ra;
+      }
+      dong = chia();
+      while (co > coMin && dong.some(function (x) { doRong.font = kieu + co + 'px ' + font; return doRong.measureText(x).width > rongChu; })) {
+        co -= 1; dong = chia();
+      }
+      return { dong: dong, co: co };
+    }
+    var td = xepDong(chuTieuDe, 26, 14, '700 ', SERIF);
+    var ph = xepDong(chuPhu, 12, 9, '', SANS);
+    var caoDau = td.dong.length * Math.round(td.co * 1.3) + 8 + ph.dong.length * Math.round(ph.co * 1.5) + 18;
+    var caoLogic = L.height + LE * 2 + Math.max(CAO_TIEU_DE, caoDau);
 
     // nét gấp đôi cho chữ sắc, nhưng phải nằm trong giới hạn canvas của trình duyệt
     var ti = 2;
@@ -299,22 +348,17 @@ GP.xuatAnh = (function () {
 
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'center';
-    ctx.font = '700 26px ' + SERIF;
+    var yChu = LE;
+    ctx.font = '700 ' + td.co + 'px ' + SERIF;
     ctx.fillStyle = MAU.muc;
-    ctx.fillText(opts.tieuDe || state.tenDongHo || 'Gia phả dòng họ', rongLogic / 2, LE + 26);
-
-    var d = new Date();
-    ctx.font = '12px ' + SANS;
+    td.dong.forEach(function (x) { yChu += Math.round(td.co * 1.3); ctx.fillText(catChu(ctx, x, rongChu), rongLogic / 2, yChu); });
+    yChu += 8;
+    ctx.font = ph.co + 'px ' + SANS;
     ctx.fillStyle = MAU.mucNhat;
-    ctx.fillText(
-      (opts.tieuDe ? (state.tenDongHo || '') + ' · ' : '') + (opts.phuDe ? opts.phuDe + ' · ' : '') +
-      demNguoi(L.boxes) + ' người · ' + L.boxes.length + ' ô · xuất ngày ' +
-      d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear(),
-      rongLogic / 2, LE + 48
-    );
+    ph.dong.forEach(function (x) { yChu += Math.round(ph.co * 1.5); ctx.fillText(catChu(ctx, x, rongChu), rongLogic / 2, yChu); });
 
     ctx.textAlign = 'left';
-    ctx.translate(LE, LE + CAO_TIEU_DE);
+    ctx.translate(LE, LE + Math.max(CAO_TIEU_DE, caoDau));
     veCay(ctx, L, state);
 
     return { canvas: canvas, ti: ti, rong: rongLogic, cao: caoLogic };
