@@ -442,6 +442,36 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 16px 24px; box-shadow: var(--bong); font-size: 14px;
 }
 
+/* ---------- hộp chọn khi xuất ---------- */
+
+#hop-xuat {
+  border: 1px solid var(--vien); border-radius: 12px; padding: 0;
+  width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px);
+  background: var(--o-nen); color: var(--muc); box-shadow: var(--bong);
+}
+#hop-xuat::backdrop { background: rgba(43, 38, 32, .35); }
+#form-xuat { padding: 18px 20px 14px; display: flex; flex-direction: column; gap: 12px; }
+#form-xuat h2 { margin: 0; font: 600 18px/1.3 Georgia, serif; }
+#form-xuat fieldset { border: 1px solid var(--vien); border-radius: 8px; padding: 8px 12px 10px; margin: 0; }
+#form-xuat legend { font-size: 12px; color: var(--muc-nhat); padding: 0 4px; }
+#form-xuat label { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; font-size: 14px; cursor: pointer; }
+#form-xuat label input { margin-top: 3px; flex: none; }
+#form-xuat label small { display: block; color: var(--muc-nhat); font-size: 12px; margin-top: 1px; }
+#form-xuat label em { font-style: normal; font-weight: 600; }
+#form-xuat select { font: inherit; font-size: 14px; padding: 3px 6px; border: 1px solid var(--vien); border-radius: 6px; background: #fff; max-width: 100%; }
+#form-xuat .hang { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+#form-xuat label.tat { opacity: .45; cursor: default; }
+#xuat-goi-y { margin: 0; font-size: 12.5px; color: var(--muc-nhat); min-height: 1em; }
+#form-xuat menu { display: flex; justify-content: flex-end; gap: 8px; margin: 0; padding: 0; }
+#form-xuat menu button {
+  font: inherit; font-size: 14px; padding: 6px 16px; border-radius: 6px;
+  border: 1px solid var(--vien); background: #fff; color: var(--muc); cursor: pointer;
+}
+#form-xuat menu button.chinh { background: var(--muc); color: var(--giay); border-color: var(--muc); }
+#form-xuat[data-kieu="sach"] .chi-anh, #form-xuat[data-kieu="sach"] .chi-pdf1,
+#form-xuat[data-kieu="anh"] .chi-pdf1, #form-xuat[data-kieu="anh"] .chi-giay,
+#form-xuat[data-kieu="pdf1"] .chi-anh { display: none; }
+
 /* ---------- nút ⋯ và bảng thả xuống ---------- */
 
 /* Trên máy tính không có nút menu, các nhóm nằm thẳng hàng trên thanh công cụ. */

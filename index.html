@@ -51,8 +51,9 @@
     <div class="nhom cuoi" id="nhom-tep">
       <button id="nhap" title="Mở tệp gia phả .json">Nhập tệp</button>
       <button id="xuat" class="chinh" title="Lưu dữ liệu ra tệp .json để giữ bản sao">Xuất tệp</button>
-      <button id="xuat-anh" title="Xuất cây thành ảnh JPEG để chia sẻ">Ảnh JPEG</button>
-      <button id="xuat-pdf" title="Xuất cây thành tệp PDF để chia sẻ hoặc in">PDF</button>
+      <button id="xuat-sach" title="Xuất sách gia phả PDF nhiều trang: mục lục, mỗi gia đình một trang, bảng tra tên">Sách PDF</button>
+      <button id="xuat-anh" title="Xuất ảnh JPEG: cả cây hoặc từng nhánh">Ảnh JPEG</button>
+      <button id="xuat-pdf" title="Xuất cả cây trên một trang PDF">PDF 1 trang</button>
       <button id="in" title="In ra giấy">In</button>
       <button id="tao-moi" class="nguy" title="Xoá hết và bắt đầu lại">Tạo mới</button>
       <input id="chon-tep" type="file" accept=".json,application/json" hidden>
@@ -84,11 +85,60 @@
 
 <div id="dang-lam" hidden><span></span></div>
 
+<dialog id="hop-xuat">
+  <form method="dialog" id="form-xuat">
+    <h2>Xuất gia phả</h2>
+
+    <fieldset>
+      <legend>Kiểu</legend>
+      <label><input type="radio" name="kieu" value="sach" checked>
+        <span><b>Sách PDF nhiều trang</b><small>Bìa, mục lục, tổng quát đời I–III, mỗi gia đình một trang có “xem tiếp trang”, bảng tra tên A–Z. Dùng để in.</small></span></label>
+      <label><input type="radio" name="kieu" value="anh">
+        <span><b>Ảnh JPEG</b><small>Vẽ đủ cả nhánh, kể cả phần đang thu gọn. Nét để gửi Zalo và phóng to trên điện thoại.</small></span></label>
+      <label><input type="radio" name="kieu" value="pdf1">
+        <span><b>PDF một trang</b><small>Cả phạm vi đã chọn trên một trang. Cây lớn thì chữ sẽ rất nhỏ.</small></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Phạm vi</legend>
+      <label><input type="radio" name="pham" value="tatca" checked><span>Toàn bộ dòng họ</span></label>
+      <label><input type="radio" name="pham" value="nhanh"><span>Một nhánh:
+        <select id="xuat-nhanh"></select></span></label>
+      <label id="dong-nguoi-chon"><input type="radio" name="pham" value="chon"><span>Từ người đang chọn trở xuống:
+        <em id="xuat-nguoi-chon"></em></span></label>
+      <label class="chi-anh"><input type="checkbox" id="xuat-tach" checked>
+        <span>Tách mỗi nhánh con một ảnh riêng <small>(toàn bộ dòng họ: mỗi nhánh đời II một ảnh)</small></span></label>
+      <label class="chi-pdf1"><input type="checkbox" id="xuat-mo-het" checked><span>Vẽ cả các nhánh đang thu gọn</span></label>
+    </fieldset>
+
+    <fieldset class="chi-giay">
+      <legend>Khổ giấy</legend>
+      <div class="hang">
+        <select id="xuat-kho">
+          <option value="A3">A3</option>
+          <option value="A4">A4</option>
+          <option value="cay" class="chi-pdf1">Vừa khít cây (không theo khổ giấy)</option>
+        </select>
+        <label><input type="radio" name="huong" value="ngang" checked><span>Ngang</span></label>
+        <label><input type="radio" name="huong" value="doc"><span>Dọc</span></label>
+      </div>
+    </fieldset>
+
+    <p id="xuat-goi-y"></p>
+
+    <menu>
+      <button value="huy" type="submit">Huỷ</button>
+      <button value="ok" type="submit" class="chinh" id="xuat-lam">Xuất</button>
+    </menu>
+  </form>
+</dialog>
+
 <script src="nguoi.js"></script>
 <script src="data.js"></script>
 <script src="layout.js"></script>
 <script src="render.js"></script>
 <script src="xuat-anh.js"></script>
+<script src="xuat-sach.js"></script>
 <script src="editor.js"></script>
 <script src="app.js"></script>
 </body>

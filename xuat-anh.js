@@ -208,13 +208,33 @@ GP.xuatAnh = (function () {
     });
   }
 
+  function demNguoi(boxes) {
+    var dem = 0;
+    boxes.forEach(function (b) {
+      if (GP.data.hasName(b.node.chong)) dem++;
+      b.node.vo.forEach(function (v) { if (GP.data.hasName(v)) dem++; });
+    });
+    return dem;
+  }
+
   /**
    * Vẽ toàn bộ cây đang hiện ra một canvas.
    * Nhánh đang thu gọn thì không xuất — xuất đúng cái đang nhìn thấy.
    */
-  function taoCanvas() {
+  /* opts (tuỳ chọn):
+       rootId — chỉ vẽ nhánh từ ô này trở xuống
+       moHet  — bỏ qua các nhánh đang thu gọn, vẽ đủ cả nhánh
+       tieuDe — dòng chữ lớn phía trên (mặc định là tên dòng họ) */
+  function taoCanvas(opts) {
+    opts = opts || {};
     var state = GP.data.get();
-    var L = GP.layout.compute(state);
+    var goc = opts.rootId || state.rootId;
+    var L = GP.layout.compute(state, {
+      rootId: goc,
+      baseDepth: GP.data.ancestors(goc).length,
+      collapsed: opts.chiCon ? function (id) { return id !== goc; } :
+        opts.moHet ? function () { return false; } : undefined
+    });
 
     var rongLogic = L.width + LE * 2;
     var caoLogic = L.height + LE * 2 + CAO_TIEU_DE;
@@ -238,13 +258,14 @@ GP.xuatAnh = (function () {
     ctx.textAlign = 'center';
     ctx.font = '700 26px ' + SERIF;
     ctx.fillStyle = MAU.muc;
-    ctx.fillText(state.tenDongHo || 'Gia phả dòng họ', rongLogic / 2, LE + 26);
+    ctx.fillText(opts.tieuDe || state.tenDongHo || 'Gia phả dòng họ', rongLogic / 2, LE + 26);
 
     var d = new Date();
     ctx.font = '12px ' + SANS;
     ctx.fillStyle = MAU.mucNhat;
     ctx.fillText(
-      GP.data.countPeople() + ' người · ' + L.boxes.length + ' ô · xuất ngày ' +
+      (opts.tieuDe ? (state.tenDongHo || '') + ' · ' : '') +
+      demNguoi(L.boxes) + ' người · ' + L.boxes.length + ' ô · xuất ngày ' +
       d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear(),
       rongLogic / 2, LE + 48
     );
@@ -274,11 +295,12 @@ GP.xuatAnh = (function () {
       new Date().toISOString().slice(0, 10) + '.' + duoi;
   }
 
-  function xuatJPEG(xong) {
-    var r = taoCanvas();
+  function xuatJPEG(xong, opts) {
+    opts = opts || {};
+    var r = taoCanvas(opts);
     r.canvas.toBlob(function (blob) {
       if (!blob) { xong('Cây quá lớn, trình duyệt không tạo được ảnh. Thử thu gọn bớt nhánh.'); return; }
-      taiVe(tenTep('jpg'), blob);
+      taiVe(opts.tenTep || tenTep('jpg'), blob);
       xong(null, r);
     }, 'image/jpeg', 0.92);
   }
@@ -287,10 +309,20 @@ GP.xuatAnh = (function () {
 
   /* PDF một trang, bên trong nhúng nguyên tấm JPEG (bộ lọc DCTDecode nhận thẳng
      dữ liệu JPEG, không phải giải nén lại). Trang lấy đúng tỉ lệ ảnh, quy ở 150 dpi. */
-  function taoPDF(jpeg, rongPx, caoPx) {
+  function taoPDF(jpeg, rongPx, caoPx, trangMm) {
     var DPI = 150, MAX_PT = 14400;   // PDF không cho trang dài quá 14400 pt
     var ti = Math.min(72 / DPI, MAX_PT / rongPx, MAX_PT / caoPx);
     var rongPt = +(rongPx * ti).toFixed(2), caoPt = +(caoPx * ti).toFixed(2);
+    var trangW = rongPt, trangH = caoPt, dichX = 0, dichY = 0;
+    if (trangMm) {
+      // đặt ảnh vừa vào một khổ giấy cố định (A4/A3), chừa lề 8mm, căn giữa
+      trangW = +(trangMm[0] * 72 / 25.4).toFixed(2);
+      trangH = +(trangMm[1] * 72 / 25.4).toFixed(2);
+      var le = 8 * 72 / 25.4;
+      var k = Math.min((trangW - 2 * le) / rongPx, (trangH - 2 * le) / caoPx);
+      rongPt = +(rongPx * k).toFixed(2); caoPt = +(caoPx * k).toFixed(2);
+      dichX = +((trangW - rongPt) / 2).toFixed(2); dichY = +((trangH - caoPt) / 2).toFixed(2);
+    }
 
     var phan = [], dai = 0, moc = [];
     function themByte(b) { phan.push(b); dai += b.length; }
@@ -305,7 +337,7 @@ GP.xuatAnh = (function () {
 
     moDoiTuong(1, '<</Type/Catalog/Pages 2 0 R>>\nendobj');
     moDoiTuong(2, '<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj');
-    moDoiTuong(3, '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + rongPt + ' ' + caoPt +
+    moDoiTuong(3, '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + trangW + ' ' + trangH +
       ']/Resources<</XObject<</Im0 4 0 R>>>>/Contents 5 0 R>>\nendobj');
 
     moc[4] = dai;
@@ -314,7 +346,7 @@ GP.xuatAnh = (function () {
     themByte(jpeg);
     themChu('\nendstream\nendobj\n');
 
-    var noiDung = 'q\n' + rongPt + ' 0 0 ' + caoPt + ' 0 0 cm\n/Im0 Do\nQ\n';
+    var noiDung = 'q\n' + rongPt + ' 0 0 ' + caoPt + ' ' + dichX + ' ' + dichY + ' cm\n/Im0 Do\nQ\n';
     moc[5] = dai;
     themChu('5 0 obj\n<</Length ' + noiDung.length + '>>\nstream\n' + noiDung + 'endstream\nendobj\n');
 
@@ -330,15 +362,16 @@ GP.xuatAnh = (function () {
     return ra;
   }
 
-  function xuatPDF(xong) {
-    var r = taoCanvas();
+  function xuatPDF(xong, opts) {
+    opts = opts || {};
+    var r = taoCanvas(opts);
     r.canvas.toBlob(function (blob) {
       if (!blob) { xong('Cây quá lớn, trình duyệt không tạo được ảnh. Thử thu gọn bớt nhánh.'); return; }
       var doc = new FileReader();
       doc.onload = function () {
         try {
-          var pdf = taoPDF(new Uint8Array(doc.result), r.canvas.width, r.canvas.height);
-          taiVe(tenTep('pdf'), new Blob([pdf], { type: 'application/pdf' }));
+          var pdf = taoPDF(new Uint8Array(doc.result), r.canvas.width, r.canvas.height, opts.trangMm);
+          taiVe(opts.tenTep || tenTep('pdf'), new Blob([pdf], { type: 'application/pdf' }));
           xong(null, r);
         } catch (e) {
           xong('Không tạo được PDF: ' + e.message);
@@ -350,6 +383,8 @@ GP.xuatAnh = (function () {
   }
 
   return {
+    MAU: MAU, SERIF: SERIF, SANS: SANS,
+    khungBo: khungBo, veCay: veCay, taiVe: taiVe, tenTep: tenTep,
     taoCanvas: taoCanvas,
     taoPDF: taoPDF,
     xuatJPEG: xuatJPEG,

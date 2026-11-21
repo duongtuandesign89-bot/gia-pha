@@ -100,7 +100,9 @@ con rể. Người mang huyết thống có vạch đỏ bên trái.
 | Di chuyển | Kéo nền; lăn chuột để phóng to; "Vừa khung" để xem toàn cây |
 | Hoàn tác | `Ctrl+Z` / `Ctrl+Shift+Z` |
 | Xuất ảnh | Nút **Ảnh JPEG** — cả cây thành một tấm ảnh để gửi Zalo/Messenger |
-| Xuất PDF | Nút **PDF** — một trang đúng tỉ lệ cây, mở và in được ở mọi máy |
+| Xuất sách | Nút **Sách PDF** — nhiều trang A3/A4, có mục lục, "xem tiếp trang N" và bảng tra tên A–Z |
+| Xuất PDF | Nút **PDF 1 trang** — cả cây (hoặc một nhánh) trên một trang |
+| Chọn phạm vi | Mọi nút xuất đều mở hộp chọn: toàn bộ / một nhánh / từ người đang chọn trở xuống, khổ và hướng giấy |
 | In ra giấy | Nút "In" — khổ A4 nằm ngang, cây tự thu cho vừa trang |
 
 ## Các tệp
@@ -113,6 +115,7 @@ con rể. Người mang huyết thống có vạch đỏ bên trái.
 | | ⚠︎ các hằng số chiều cao ở đầu tệp phải khớp với CSS — sửa cỡ chữ trong ô thì phải đo lại |
 | `render.js` | vẽ ô và đường nối, kéo/phóng to |
 | `xuat-anh.js` | vẽ cây ra Canvas rồi xuất JPEG / PDF |
+| `xuat-sach.js` | sách PDF nhiều trang (bìa, mục lục, tổng quát đời I–III, mỗi gia đình một trang, bảng tra tên) và ảnh JPEG theo từng nhánh |
 | `editor.js` | bảng sửa bên phải |
 | `app.js` | thanh công cụ, tìm kiếm, nhập/xuất, phím tắt |
 
