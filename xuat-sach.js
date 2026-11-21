@@ -153,7 +153,7 @@ GP.xuatSach = (function () {
    * @returns danh sách trang theo thứ tự, mỗi trang có .so (số trang) và .loai
    */
   function lapKeHoach(opt) {
-    var state = GP.data.get();
+    var state = opt.state || GP.data.get();
     var doi = bangDoi(state);
     var goc = opt.rootId && state.nodes[opt.rootId] ? opt.rootId : state.rootId;
     var vung = vungTrang(opt);
@@ -314,7 +314,7 @@ GP.xuatSach = (function () {
 
     return {
       trang: tatCa, vung: vung, state: state, doi: doi, goc: goc,
-      soNguoi: traTen.length, soTrangCay: trangCay.length,
+      soNguoi: traTen.length, soTrangCay: trangCay.length, phuDe: opt.phuDe,
       soDoi: traTen.reduce(function (m, e) { return Math.max(m, e.doi + 1); }, 0) - doi[goc]
     };
   }
@@ -614,6 +614,7 @@ GP.xuatSach = (function () {
     var pham = kh.goc === st.rootId ? 'Toàn bộ dòng họ' :
       'Nhánh ' + tieuDeGiaDinh(goc).replace('Gia đình ', '') + ' (đời ' + laMa(kh.doi[kh.goc] + 1) + ') trở xuống';
     var d = new Date();
+    if (kh.phuDe) pham += ' · ' + kh.phuDe;
     chuGiua(ctx, pham, cx, cy + mm(16), mm(4.5) + 'px ' + SERIF, MAU.muc);
     chuGiua(ctx, kh.soNguoi + ' người  ·  ' + soDoi + ' đời  ·  ' + kh.trang.length + ' trang', cx, cy + mm(25),
       mm(3.6) + 'px ' + SANS, MAU.mucNhat);
@@ -800,7 +801,7 @@ GP.xuatSach = (function () {
    * (mặc định với ô gốc: mỗi nhánh đời II một ảnh). Ảnh vẽ đủ cả nhánh, kể cả phần đang thu gọn.
    */
   function lapDanhSachAnh(opt) {
-    var st = GP.data.get();
+    var st = opt.state || GP.data.get();
     var goc = opt.rootId && st.nodes[opt.rootId] ? opt.rootId : st.rootId;
     var ds = [];
     /* Ảnh rộng quá giới hạn canvas thì bị thu nhỏ, chữ nhoè khi phóng to trên điện thoại.
@@ -809,7 +810,7 @@ GP.xuatSach = (function () {
       return GP.layout.compute(st, { rootId: id, collapsed: function () { return false; } }).width + 88;
     }
     function them(id) {
-      if (opt.tachNhanh && st.nodes[id].con.length && 12000 / rongNhanh(id) < 1) {
+      if (opt.tachNhanh && !opt.doc && st.nodes[id].con.length && 12000 / rongNhanh(id) < 1) {
         ds.push({ id: id, chiCon: true });   // ảnh gọn: ô này và các con, để không sót người con không có cháu
         st.nodes[id].con.forEach(function (c) { if (st.nodes[c].con.length) them(c); });
       } else {
@@ -826,7 +827,7 @@ GP.xuatSach = (function () {
   }
 
   function xuatAnhNhanh(opt, tienDo, xong) {
-    var st = GP.data.get();
+    var st = opt.state || GP.data.get();
     var ds = lapDanhSachAnh(opt);
     var i = 0, ghiChu = [];
     function buoc() {
@@ -837,10 +838,10 @@ GP.xuatSach = (function () {
         (GP.data.ancestors(id).length ? '  ·  ' + chuoiDong({ state: st }, id) : '');
       var r;
       if (chiCon) tieuDe = tieuDe.replace('Nhánh ', 'Gia đình ') + '  (các con; mỗi người con có cháu xem ảnh riêng)';
-      try { r = XA.taoCanvas({ rootId: id, moHet: true, chiCon: chiCon, tieuDe: tieuDe }); } catch (e) { xong('Không vẽ được: ' + e.message); return; }
+      try { r = XA.taoCanvas({ state: st, rootId: id, moHet: true, chiCon: chiCon, tieuDe: tieuDe, doc: opt.doc, phuDe: opt.phuDe }); } catch (e) { xong('Không vẽ được: ' + e.message); return; }
       if (r.ti < 1) ghiChu.push(tieuDe + ' (ảnh thu nhỏ còn ' + Math.round(r.ti * 100) + '% vì nhánh quá rộng)');
       var ten = GP.nguoi.slug(st.tenDongHo) + '-' + String(i + 1).padStart(2, '0') + '-' +
-        GP.nguoi.slug(GP.nguoi.ho(p) + ' ' + GP.nguoi.ten(p)) + (chiCon ? '-cac-con' : '') + '.jpg';
+        GP.nguoi.slug(GP.nguoi.ho(p) + ' ' + GP.nguoi.ten(p)) + (chiCon ? '-cac-con' : '') + (opt.doc ? '-doc' : '') + '.jpg';
       r.canvas.toBlob(function (blob) {
         if (!blob) { xong('Nhánh "' + tieuDe + '" quá lớn, trình duyệt không tạo được ảnh.'); return; }
         XA.taiVe(ten, blob);

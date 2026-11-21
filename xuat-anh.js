@@ -165,6 +165,7 @@ GP.xuatAnh = (function () {
     ctx.strokeStyle = MAU.duong;
     ctx.lineWidth = 1.6;
     ctx.beginPath();
+    if (L.veDuong) L.veDuong(ctx);
     L.edges.forEach(function (e) {
       var px = e.parent.cx, pb = e.parent.y + e.parent.h, by = e.busY;
       ctx.moveTo(px, pb); ctx.lineTo(px, by);
@@ -225,16 +226,58 @@ GP.xuatAnh = (function () {
        rootId — chỉ vẽ nhánh từ ô này trở xuống
        moHet  — bỏ qua các nhánh đang thu gọn, vẽ đủ cả nhánh
        tieuDe — dòng chữ lớn phía trên (mặc định là tên dòng họ) */
+  /* Bố cục dọc (khổ đứng, hợp xem trên điện thoại): cây dạng danh sách thụt lề như mục lục,
+     con nằm dưới cha và thụt vào. Dài quá thì chia thành nhiều cột cạnh nhau để ảnh có tỉ lệ
+     khoảng 3:4 — người xem đọc hết cột này sang cột kia. */
+  var THUT = 44, CACH_DOC = 14, CACH_COT = 70;
+  function boCucDoc(state, goc, baseDepth, isCol) {
+    var Ly = GP.layout, nodes = state.nodes, ds = [], sauNhat = 0;
+    (function di(id, level, parent) {
+      var n = nodes[id];
+      var showMe = !!(parent && parent.vo.length > 1);
+      var me = (parent && n.meIndex >= 0 && n.meIndex < parent.vo.length) ? n.meIndex : 0;
+      ds.push({
+        id: id, node: n, level: level, depth: baseDepth + level, w: Ly.NODE_W,
+        h: Ly.nodeHeight(n, showMe), showMe: showMe, meIdx: me, parentId: parent ? parent.id : null,
+        meName: showMe ? (GP.nguoi.ten(parent.vo[me]) || GP.nguoi.ho(parent.vo[me])) : ''
+      });
+      sauNhat = Math.max(sauNhat, level);
+      if (!isCol(id, n)) n.con.forEach(function (c) { di(c, level + 1, n); });
+    })(goc, 0, null);
+    var rongCot = Ly.NODE_W + sauNhat * THUT;
+    var tong = ds.reduce(function (t, r) { return t + r.h + CACH_DOC; }, 0);
+    var soCot = Math.max(1, Math.round(Math.sqrt(tong / (1.35 * (rongCot + CACH_COT)))));
+    var moiCot = tong / soCot, cot = 0, y = 0, cao = 0, byId = {};
+    ds.forEach(function (r) {
+      if (y > 0 && y + r.h / 2 > moiCot && cot < soCot - 1) { cot++; y = 0; }
+      r.cot = cot;
+      r.x = cot * (rongCot + CACH_COT) + r.level * THUT; r.y = y; r.cx = r.x + r.w / 2;
+      y += r.h + CACH_DOC; cao = Math.max(cao, y - CACH_DOC);
+      byId[r.id] = r;
+    });
+    return {
+      boxes: ds, byId: byId, edges: [], width: (cot + 1) * rongCot + cot * CACH_COT, height: cao,
+      veDuong: function (ctx) {
+        ds.forEach(function (r) {
+          var p = r.parentId && byId[r.parentId];
+          if (!p) return;
+          var xd = p.x + 14, yc = r.y + 22;
+          if (p.cot === r.cot) { ctx.moveTo(xd, p.y + p.h); ctx.lineTo(xd, yc); }
+          else { xd = r.x - THUT + 14; ctx.moveTo(xd, Math.max(0, r.y - CACH_DOC)); ctx.lineTo(xd, yc); }
+          ctx.lineTo(r.x, yc);
+        });
+      }
+    };
+  }
+
   function taoCanvas(opts) {
     opts = opts || {};
-    var state = GP.data.get();
+    var state = opts.state || GP.data.get();
     var goc = opts.rootId || state.rootId;
-    var L = GP.layout.compute(state, {
-      rootId: goc,
-      baseDepth: GP.data.ancestors(goc).length,
-      collapsed: opts.chiCon ? function (id) { return id !== goc; } :
-        opts.moHet ? function () { return false; } : undefined
-    });
+    var isCol = opts.chiCon ? function (id) { return id !== goc; } :
+      opts.moHet ? function () { return false; } : function (id, n) { return n.thuGon; };
+    var L = opts.doc ? boCucDoc(state, goc, GP.data.ancestors(goc).length, isCol) :
+      GP.layout.compute(state, { rootId: goc, baseDepth: GP.data.ancestors(goc).length, collapsed: isCol });
 
     var rongLogic = L.width + LE * 2;
     var caoLogic = L.height + LE * 2 + CAO_TIEU_DE;
@@ -264,7 +307,7 @@ GP.xuatAnh = (function () {
     ctx.font = '12px ' + SANS;
     ctx.fillStyle = MAU.mucNhat;
     ctx.fillText(
-      (opts.tieuDe ? (state.tenDongHo || '') + ' · ' : '') +
+      (opts.tieuDe ? (state.tenDongHo || '') + ' · ' : '') + (opts.phuDe ? opts.phuDe + ' · ' : '') +
       demNguoi(L.boxes) + ' người · ' + L.boxes.length + ' ô · xuất ngày ' +
       d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear(),
       rongLogic / 2, LE + 48

@@ -469,7 +469,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 #form-xuat menu button.chinh { background: var(--muc); color: var(--giay); border-color: var(--muc); }
 #form-xuat[data-kieu="sach"] .chi-anh, #form-xuat[data-kieu="sach"] .chi-pdf1,
-#form-xuat[data-kieu="anh"] .chi-pdf1, #form-xuat[data-kieu="anh"] .chi-giay,
+#form-xuat .gioi-han { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 0 4px 24px; font-size: 14px; }
+#form-xuat .gioi-han label { padding: 0; cursor: default; }
+#form-xuat .gioi-han small { color: var(--muc-nhat); font-size: 12px; }
+#form-xuat .gioi-han select { max-width: 200px; }
+#form-xuat[data-kieu="anh"] .khong-anh,
+#form-xuat[data-kieu="anh"] .chi-pdf1,
 #form-xuat[data-kieu="pdf1"] .chi-anh { display: none; }
 
 /* ---------- nút ⋯ và bảng thả xuống ---------- */

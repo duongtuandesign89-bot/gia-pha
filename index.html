@@ -106,15 +106,24 @@
         <select id="xuat-nhanh"></select></span></label>
       <label id="dong-nguoi-chon"><input type="radio" name="pham" value="chon"><span>Từ người đang chọn trở xuống:
         <em id="xuat-nguoi-chon"></em></span></label>
+      <div class="gioi-han">
+        <label><span>Chỉ các con từ</span></label>
+        <select id="xuat-tu"></select><span>đến</span><select id="xuat-den"></select>
+      </div>
+      <div class="gioi-han">
+        <label><span>Đến đời</span></label>
+        <select id="xuat-doi"></select>
+        <small>(không vẽ các đời sau)</small>
+      </div>
       <label class="chi-anh"><input type="checkbox" id="xuat-tach" checked>
         <span>Tách mỗi nhánh con một ảnh riêng <small>(toàn bộ dòng họ: mỗi nhánh đời II một ảnh)</small></span></label>
       <label class="chi-pdf1"><input type="checkbox" id="xuat-mo-het" checked><span>Vẽ cả các nhánh đang thu gọn</span></label>
     </fieldset>
 
     <fieldset class="chi-giay">
-      <legend>Khổ giấy</legend>
+      <legend id="nhan-kho">Khổ giấy</legend>
       <div class="hang">
-        <select id="xuat-kho">
+        <select id="xuat-kho" class="khong-anh">
           <option value="A3">A3</option>
           <option value="A4">A4</option>
           <option value="cay" class="chi-pdf1">Vừa khít cây (không theo khổ giấy)</option>

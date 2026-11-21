@@ -172,22 +172,90 @@ window.GP = window.GP || {};
     return (n.doiTruyen === 'vo' ? 'bà ' : 'ông ') + (GP.data.fullName(p) || 'chưa đặt tên');
   }
 
-  /* Danh sách nhánh để chọn: các ô đời II và đời III (thụt vào), ô nào có con mới đưa vào. */
+  function laMa(n) {
+    var so = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']], r = '';
+    so.forEach(function (c) { while (n >= c[0]) { r += c[1]; n -= c[0]; } });
+    return r;
+  }
+
+  /** Đời (0 = đời I) của mọi ô. */
+  function bangDoi() {
+    var st = GP.data.get(), doi = {};
+    (function di(id, d) { doi[id] = d; st.nodes[id].con.forEach(function (c) { di(c, d + 1); }); })(st.rootId, 0);
+    return doi;
+  }
+
+  /* Danh sách nhánh để chọn: mọi ô có con, theo thứ tự cây, thụt lề theo đời. */
   function napDanhSachNhanh() {
     var st = GP.data.get(), sel = $('xuat-nhanh'), cu = sel.value;
     sel.innerHTML = '';
-    st.nodes[st.rootId].con.forEach(function (id2) {
-      var o = document.createElement('option');
-      o.value = id2; o.textContent = 'Đời II · ' + tenO(id2);
-      sel.appendChild(o);
-      st.nodes[id2].con.forEach(function (id3) {
-        if (!st.nodes[id3].con.length) return;
-        var o3 = document.createElement('option');
-        o3.value = id3; o3.textContent = '\u00a0\u00a0\u00a0\u00a0Đời III · ' + tenO(id3);
-        sel.appendChild(o3);
-      });
-    });
+    (function di(id, d) {
+      var n = st.nodes[id];
+      if (d > 0 && n.con.length) {
+        var o = document.createElement('option');
+        o.value = id;
+        o.textContent = new Array(d).join('\u00a0\u00a0\u00a0') + 'Đời ' + laMa(d + 1) + ' · ' + tenO(id) +
+          ' (' + n.con.length + ' con)';
+        sel.appendChild(o);
+      }
+      n.con.forEach(function (c) { di(c, d + 1); });
+    })(st.rootId, 0);
     if (cu && st.nodes[cu]) sel.value = cu;
+  }
+
+  function gocDangChon() {
+    var f = $('form-xuat'), st = GP.data.get();
+    var pham = f.querySelector('[name=pham]:checked').value;
+    if (pham === 'nhanh') return $('xuat-nhanh').value || st.rootId;
+    if (pham === 'chon' && selectedId) return selectedId;
+    return st.rootId;
+  }
+
+  /* Hai hộp "từ con thứ … đến …" và hộp "đến đời …" đổi theo ô bắt đầu đang chọn. */
+  function napGioiHan() {
+    var st = GP.data.get(), goc = gocDangChon(), n = st.nodes[goc], doi = bangDoi();
+    if ($('xuat-tu').dataset.goc !== goc) {
+      ['xuat-tu', 'xuat-den'].forEach(function (k, j) {
+        var sel = $(k);
+        sel.innerHTML = '';
+        n.con.forEach(function (c, i) {
+          var o = document.createElement('option');
+          o.value = i; o.textContent = (i + 1) + '. ' + tenO(c).replace(/^(ông|bà) /, '');
+          sel.appendChild(o);
+        });
+        sel.value = j ? n.con.length - 1 : 0;
+        sel.disabled = n.con.length < 2;
+        sel.dataset.goc = goc;
+      });
+    }
+    var sauNhat = doi[goc];
+    (function di(id) { sauNhat = Math.max(sauNhat, doi[id]); st.nodes[id].con.forEach(di); })(goc);
+    var selD = $('xuat-doi'), cu = selD.value;
+    selD.innerHTML = '';
+    for (var d = doi[goc] + 1; d <= sauNhat; d++) {
+      var o = document.createElement('option');
+      o.value = d; o.textContent = 'Đời ' + laMa(d + 1) + (d === sauNhat ? ' (hết)' : '');
+      selD.appendChild(o);
+    }
+    if (!selD.options.length) {
+      var o0 = document.createElement('option'); o0.value = doi[goc]; o0.textContent = 'Đời ' + laMa(doi[goc] + 1);
+      selD.appendChild(o0);
+    }
+    selD.value = (cu && +cu > doi[goc] && +cu <= sauNhat) ? cu : String(sauNhat > doi[goc] ? sauNhat : doi[goc]);
+    return { sauNhat: sauNhat };
+  }
+
+  /* Bản sao dữ liệu đã cắt theo giới hạn: chỉ giữ các con trong khoảng đã chọn của ô bắt đầu,
+     và bỏ các đời sau đời đã chọn. Mã ô giữ nguyên nên số đời, tên, trang vẫn khớp. */
+  function catDuLieu(goc, tu, den, denDoi) {
+    var st = GP.data.get(), doi = bangDoi(), nodes = {};
+    Object.keys(st.nodes).forEach(function (id) {
+      var n = st.nodes[id];
+      var con = n.con.filter(function (c) { return doi[c] <= denDoi; });
+      if (id === goc) con = n.con.slice(tu, den + 1).filter(function (c) { return doi[c] <= denDoi; });
+      nodes[id] = Object.assign({}, n, { con: con, thuGon: false });
+    });
+    return { version: st.version, tenDongHo: st.tenDongHo, rootId: st.rootId, nodes: nodes };
   }
 
   function giaTriXuat() {
@@ -195,21 +263,41 @@ window.GP = window.GP || {};
     var kieu = f.querySelector('[name=kieu]:checked').value;
     var pham = f.querySelector('[name=pham]:checked').value;
     var st = GP.data.get();
-    var rootId = st.rootId;
-    if (pham === 'nhanh') rootId = $('xuat-nhanh').value || st.rootId;
-    if (pham === 'chon' && selectedId) rootId = selectedId;
+    var rootId = gocDangChon();
     var kho = $('xuat-kho').value;
     if (kho === 'cay' && kieu !== 'pdf1') kho = 'A3';
+    var n = st.nodes[rootId], doi = bangDoi();
+    var tu = +$('xuat-tu').value || 0, den = $('xuat-den').value === '' ? n.con.length - 1 : +$('xuat-den').value;
+    if (den < tu) { var t = tu; tu = den; den = t; }
+    var denDoi = +$('xuat-doi').value;
+    var catCon = n.con.length > 1 && (tu > 0 || den < n.con.length - 1);
+    var sauNhat = doi[rootId];
+    (function di(id) { sauNhat = Math.max(sauNhat, doi[id]); st.nodes[id].con.forEach(di); })(rootId);
+    var catDoi = denDoi < sauNhat;
+    var phuDe = [];
+    if (catCon) phuDe.push('các con thứ ' + (tu + 1) + '–' + (den + 1));
+    if (catDoi) phuDe.push('đến đời ' + laMa(denDoi + 1));
+    var huong = f.querySelector('[name=huong]:checked').value;
     return {
-      kieu: kieu, pham: pham, rootId: rootId, kho: kho,
-      huong: f.querySelector('[name=huong]:checked').value,
-      tachNhanh: $('xuat-tach').checked, moHet: $('xuat-mo-het').checked
+      kieu: kieu, pham: pham, rootId: rootId, kho: kho, huong: huong,
+      tachNhanh: $('xuat-tach').checked, moHet: $('xuat-mo-het').checked,
+      doc: huong === 'doc',
+      state: (catCon || catDoi) ? catDuLieu(rootId, tu, den, denDoi) : null,
+      phuDe: phuDe.join(', ')
     };
+  }
+
+  /** Số ô sẽ được xuất, tính trên dữ liệu đã cắt theo giới hạn. */
+  function demO(g) {
+    var st = g.state || GP.data.get();
+    return (function dem(id) { return st.nodes[id].con.reduce(function (t, c) { return t + dem(c); }, 1); })(g.rootId);
   }
 
   function capNhatHopXuat() {
     var f = $('form-xuat');
+    napGioiHan();
     var g = giaTriXuat();
+    $('nhan-kho').textContent = g.kieu === 'anh' ? 'Hướng ảnh' : 'Khổ giấy';
     f.dataset.kieu = g.kieu;
     var dongChon = $('dong-nguoi-chon');
     dongChon.classList.toggle('tat', !selectedId);
@@ -220,15 +308,18 @@ window.GP = window.GP || {};
     var goiY = '';
     if (g.kieu === 'sach') {
       goiY = 'Sách khổ ' + g.kho + (g.huong === 'doc' ? ' dọc' : ' ngang') + ', ' +
-        GP.data.branchSize(g.rootId) + ' ô. A3 chứa được nhiều đời hơn trên mỗi trang; A4 thì nhiều trang hơn.';
+        demO(g) + ' ô. A3 chứa được nhiều đời hơn trên mỗi trang; A4 thì nhiều trang hơn.';
     } else if (g.kieu === 'anh') {
-      var soAnh = GP.xuatSach.lapDanhSachAnh({ rootId: g.rootId, tachNhanh: g.tachNhanh }).length;
+      var soAnh = GP.xuatSach.lapDanhSachAnh({ state: g.state, rootId: g.rootId, tachNhanh: g.tachNhanh, doc: g.doc }).length;
       goiY = soAnh > 1 ? 'Sẽ tải về ' + soAnh + ' ảnh. Nhánh nào quá rộng (chữ sẽ nhoè) thì tự tách tiếp thành từng gia đình. ' +
         'Trình duyệt có thể hỏi cho phép tải nhiều tệp — bấm Cho phép.' :
-        'Sẽ tải về 1 ảnh gồm ' + GP.data.branchSize(g.rootId) + ' ô.';
+        'Sẽ tải về 1 ảnh gồm ' + demO(g) + ' ô.';
     } else {
       goiY = g.kho === 'cay' ? 'Trang PDF to đúng bằng cây.' : 'Cả cây thu vào một trang ' + g.kho + '.';
+      if (g.doc) goiY += ' Hướng dọc: cây xếp thành danh sách thụt lề, chia cột.';
     }
+    if (g.kieu === 'anh' && g.doc) goiY += ' Ảnh dọc: cây xếp thành danh sách thụt lề (con dưới cha), dài thì chia cột.';
+    if (g.phuDe) goiY += ' Giới hạn: ' + g.phuDe + '.';
     $('xuat-goi-y').textContent = goiY;
   }
 
@@ -263,14 +354,15 @@ window.GP = window.GP || {};
           if (g.kieu === 'sach') {
             GP.xuatSach.xuatSach(g, function (i, tong) { chu.textContent = 'Đang vẽ trang ' + i + ' / ' + tong + '…'; }, xong);
           } else if (g.kieu === 'anh') {
-            GP.xuatSach.xuatAnhNhanh({ rootId: g.rootId, tachNhanh: g.tachNhanh },
+            GP.xuatSach.xuatAnhNhanh({ state: g.state, rootId: g.rootId, tachNhanh: g.tachNhanh, doc: g.doc, phuDe: g.phuDe },
               function (i, tong) { chu.textContent = 'Đang tạo ảnh ' + i + ' / ' + tong + '…'; }, xong);
           } else {
             chu.textContent = 'Đang tạo PDF…';
             var kho = GP.xuatSach.KHO[g.kho];
             GP.xuatAnh.xuatPDF(xong, {
+              state: g.state, doc: g.doc, phuDe: g.phuDe,
               rootId: g.rootId === GP.data.get().rootId ? null : g.rootId,
-              moHet: g.moHet,
+              moHet: g.moHet || !!g.state,
               trangMm: kho ? (g.huong === 'doc' ? [kho[1], kho[0]] : kho) : null
             });
           }
